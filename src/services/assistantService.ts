@@ -43,6 +43,8 @@ export const checkAssistantStatus = async (): Promise<{
   configured: boolean; 
   error?: string;
   details?: string;
+  assistantName?: string;
+  assistantModel?: string;
 }> => {
   try {
     const { data, error } = await supabase.functions.invoke('check-assistant-status', {
