@@ -28,6 +28,6 @@ enabled = true
 enabled = true
 
 [functions]
+[functions.serve]
 enabled = true
-# The functions section needs to be formatted as a map, not just a boolean
 port = 54325
