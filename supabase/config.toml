@@ -29,3 +29,5 @@ enabled = true
 
 [functions]
 enabled = true
+# The functions section needs to be formatted as a map, not just a boolean
+port = 54325
