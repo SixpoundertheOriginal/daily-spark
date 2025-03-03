@@ -34,18 +34,24 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
 const App = () => {
   const [supabaseInitialized, setSupabaseInitialized] = useState<boolean>(false);
-  const [supabaseError, setSupabaseError] = useState<boolean>(false);
+  const [supabaseError, setSupabaseError] = useState<string | null>(null);
 
   useEffect(() => {
     // Check if Supabase is properly initialized
     const checkSupabase = async () => {
       try {
         // Simple health check - just try to get session
-        await supabase.auth.getSession();
+        const { data, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          throw error;
+        }
+        
         setSupabaseInitialized(true);
+        setSupabaseError(null);
       } catch (error) {
         console.error("Supabase initialization error:", error);
-        setSupabaseError(true);
+        setSupabaseError(error instanceof Error ? error.message : 'Failed to connect to database');
       }
     };
     
@@ -59,8 +65,16 @@ const App = () => {
         <div className="glass-card max-w-md p-8 shadow-xl">
           <h2 className="mb-4 text-2xl font-light text-gradient">Connection Error</h2>
           <p className="mb-6 text-nexus-text-secondary">
-            Unable to connect to the database. Please check your connection or try again later.
+            Unable to connect to the database. {supabaseError}
           </p>
+          <div className="mb-6 p-4 bg-black/20 rounded-lg text-left">
+            <p className="text-sm text-nexus-text-secondary">Check that your Supabase URL and Anon Key are correctly set:</p>
+            <ul className="list-disc pl-5 mt-2 text-xs text-nexus-text-secondary">
+              <li>Project ID: kknjntjniumgajltgrfs</li>
+              <li>URL should be: https://kknjntjniumgajltgrfs.supabase.co</li>
+              <li>Check Project Settings in Supabase for API keys</li>
+            </ul>
+          </div>
           <button
             onClick={() => window.location.reload()}
             className="primary-gradient w-full rounded-xl px-4 py-2 text-white"
