@@ -2,6 +2,7 @@
 import React from 'react';
 import { Sparkles, ArrowRight, Bot } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { toast } from 'sonner';
 
 interface InsightCardProps {
   insight: string;
@@ -16,6 +17,15 @@ const InsightCard: React.FC<InsightCardProps> = ({
   onAction = () => {},
   onAskAI
 }) => {
+  const handleAskAIClick = () => {
+    if (onAskAI) {
+      onAskAI();
+      toast.info('AI Assistant', {
+        description: 'Opening AI assistant to help you...'
+      });
+    }
+  };
+
   return (
     <motion.div 
       initial={{ y: 10, opacity: 0 }}
@@ -49,7 +59,7 @@ const InsightCard: React.FC<InsightCardProps> = ({
             
             {onAskAI && (
               <button 
-                onClick={onAskAI}
+                onClick={handleAskAIClick}
                 className="text-xs glass-button hover:bg-white/15 transition-all duration-300 shadow-lg shadow-nexus-accent-purple/10 rounded-lg px-4 py-2 flex items-center"
               >
                 <Bot size={12} className="mr-2 text-white" />

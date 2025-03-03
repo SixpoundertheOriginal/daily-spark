@@ -1,8 +1,9 @@
 
-import React, { useState } from 'react';
-import { Bot, X, Sparkles } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Bot, X, Sparkles, AlertCircle, RefreshCcw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
+import { toast } from 'sonner';
 
 interface AIAssistantProps {
   isOpen: boolean;
@@ -14,12 +15,13 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose, message }) =
   const [response, setResponse] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState<number>(0);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (message && isOpen) {
       fetchResponse(message);
     }
-  }, [message, isOpen]);
+  }, [message, isOpen, retryCount]);
 
   const fetchResponse = async (userMessage: string) => {
     setLoading(true);
@@ -27,18 +29,37 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose, message }) =
     setResponse(null);
     
     try {
+      console.log("Calling chat-with-assistant function with message:", userMessage);
+      
       const { data, error } = await supabase.functions.invoke('chat-with-assistant', {
         body: { message: userMessage }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching AI response:', error);
+        throw error;
+      }
+      
+      if (data.error) {
+        console.error('API returned an error:', data.error);
+        throw new Error(data.error);
+      }
+
+      console.log("Response received from chat-with-assistant:", data);
       setResponse(data.response);
     } catch (err) {
       console.error('Error fetching AI response:', err);
       setError('Failed to get a response from the assistant. Please try again.');
+      toast.error('AI Assistant Error', {
+        description: 'Failed to connect to the AI service. Please try again later.',
+      });
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleRetry = () => {
+    setRetryCount(prev => prev + 1);
   };
 
   return (
@@ -81,8 +102,16 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose, message }) =
                   <p className="text-nexus-text-secondary text-sm">Generating response...</p>
                 </div>
               ) : error ? (
-                <div className="text-red-400">
-                  <p>{error}</p>
+                <div className="flex flex-col items-center justify-center text-red-400 p-4">
+                  <AlertCircle size={24} className="mb-3" />
+                  <p className="text-center mb-4">{error}</p>
+                  <button 
+                    onClick={handleRetry}
+                    className="flex items-center justify-center bg-red-500/30 hover:bg-red-500/50 text-white px-4 py-2 rounded-md transition-colors"
+                  >
+                    <RefreshCcw size={16} className="mr-2" />
+                    Retry
+                  </button>
                 </div>
               ) : response ? (
                 <div className="text-white text-sm leading-relaxed whitespace-pre-wrap">{response}</div>

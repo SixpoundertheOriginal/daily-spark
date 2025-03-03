@@ -20,17 +20,22 @@ serve(async (req) => {
   try {
     // Validate that the API key and assistant ID are set
     if (!OPENAI_API_KEY) {
+      console.error("OPENAI_API_KEY is not set");
       throw new Error("OPENAI_API_KEY is not set");
     }
     
     if (!ASSISTANT_ID) {
+      console.error("ASSISTANT_ID is not set");
       throw new Error("ASSISTANT_ID is not set");
     }
+
+    console.log("Environment variables validated successfully");
 
     const { message } = await req.json();
     console.log("User message:", message);
 
     // Step 1: Create a Thread
+    console.log("Creating thread...");
     const threadResponse = await fetch("https://api.openai.com/v1/threads", {
       method: "POST",
       headers: {
@@ -52,6 +57,7 @@ serve(async (req) => {
     console.log("Thread created with ID:", threadId);
 
     // Step 2: Add a Message to the Thread
+    console.log("Adding message to thread...");
     const messageResponse = await fetch(`https://api.openai.com/v1/threads/${threadId}/messages`, {
       method: "POST",
       headers: {
@@ -74,6 +80,7 @@ serve(async (req) => {
     console.log("Message added to thread");
 
     // Step 3: Run the Assistant
+    console.log("Running the assistant...");
     const runResponse = await fetch(`https://api.openai.com/v1/threads/${threadId}/runs`, {
       method: "POST",
       headers: {
@@ -99,10 +106,14 @@ serve(async (req) => {
     // Step 4: Periodically check the Run status
     let runStatus = runData.status;
     let responseMessage = null;
+    let attempts = 0;
+    const maxAttempts = 30; // Prevent infinite loops
 
-    while (runStatus !== "completed" && runStatus !== "failed" && runStatus !== "cancelled") {
+    while (runStatus !== "completed" && runStatus !== "failed" && runStatus !== "cancelled" && attempts < maxAttempts) {
       // Wait a moment before checking again
+      console.log(`Checking run status (attempt ${attempts + 1})...`);
       await new Promise(resolve => setTimeout(resolve, 1000));
+      attempts++;
 
       // Check the status
       const runCheckResponse = await fetch(`https://api.openai.com/v1/threads/${threadId}/runs/${runId}`, {
@@ -125,10 +136,12 @@ serve(async (req) => {
     }
 
     if (runStatus !== "completed") {
+      console.error(`Run ended with non-completed status: ${runStatus}`);
       throw new Error(`Run ended with status: ${runStatus}`);
     }
 
     // Step 5: Retrieve the Messages added by the Assistant
+    console.log("Retrieving assistant messages...");
     const messagesResponse = await fetch(`https://api.openai.com/v1/threads/${threadId}/messages`, {
       method: "GET",
       headers: {
@@ -155,16 +168,24 @@ serve(async (req) => {
         .filter(content => content.type === "text")
         .map(content => content.text.value)
         .join("\n");
+      
+      console.log("Successfully retrieved assistant response");
+    } else {
+      console.error("No assistant message found in the response");
+      throw new Error("No assistant message found in the response");
     }
 
-    console.log("Assistant response:", responseMessage);
+    console.log("Assistant response ready to return");
 
     return new Response(JSON.stringify({ response: responseMessage }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" }
     });
   } catch (error) {
     console.error("Error:", error.message);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ 
+      error: error.message,
+      details: "An error occurred while processing your request to the OpenAI Assistant API." 
+    }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" }
     });
