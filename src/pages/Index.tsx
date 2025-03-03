@@ -5,9 +5,20 @@ import TopicCardView from '../components/TopicCardView';
 import { Button } from '@/components/ui/button';
 import { LayoutGrid, List } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { toast } from 'sonner';
 
 const Index = () => {
   const [viewMode, setViewMode] = useState<'list' | 'card'>('list');
+  
+  const handleSwitchView = () => {
+    const newMode = viewMode === 'list' ? 'card' : 'list';
+    setViewMode(newMode);
+    toast.info(
+      newMode === 'card' 
+      ? 'Switched to topic card view' 
+      : 'Switched to list view'
+    );
+  };
   
   return (
     <div className="min-h-screen bg-black relative overflow-hidden">
@@ -51,11 +62,7 @@ const Index = () => {
       
       {/* Content */}
       <div className="relative z-10">
-        {viewMode === 'list' ? (
-          <TaskPanel onSwitchView={() => setViewMode('card')} />
-        ) : (
-          <TaskPanel viewMode="card" onSwitchView={() => setViewMode('list')} />
-        )}
+        <TaskPanel viewMode={viewMode} onSwitchView={handleSwitchView} />
       </div>
     </div>
   );

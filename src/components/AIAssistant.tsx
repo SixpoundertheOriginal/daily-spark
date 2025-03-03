@@ -34,14 +34,14 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose, message }) =
         throw invokeError;
       }
       
-      if (data.error) {
+      if (data?.error) {
         console.error('API returned an error:', data.error, data.details);
         throw new Error(data.details || data.error);
       }
 
       console.log("Response received from chat-with-assistant:", data);
       
-      if (!data.response) {
+      if (!data?.response) {
         throw new Error("No response received from the assistant");
       }
       
@@ -50,11 +50,11 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose, message }) =
       console.error('Error fetching AI response:', err);
       
       // Determine the error message to show to the user
-      let errorMessage = 'Failed to connect to the AI service. Please try again later.';
+      let errorMessage = 'Unable to connect to the AI service. Please check your internet connection and try again.';
       
       if (err.message?.includes('OPENAI_API_KEY') || err.message?.includes('ASSISTANT_ID')) {
         errorMessage = 'AI service is not properly configured. Please contact support.';
-      } else if (err.message?.includes('Failed to fetch') || err.name === 'FunctionsFetchError') {
+      } else if (err.name === 'FunctionsFetchError' || err.message?.includes('Failed to fetch')) {
         errorMessage = 'Unable to connect to the AI service. Please check your internet connection and try again.';
       }
       
@@ -75,7 +75,12 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose, message }) =
   }, [message, isOpen, retryCount, fetchResponse]);
 
   const handleRetry = () => {
+    if (!message) {
+      toast.error('No message to retry');
+      return;
+    }
     setRetryCount(prev => prev + 1);
+    toast.info('Retrying connection to AI service...');
   };
 
   return (
@@ -138,8 +143,13 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose, message }) =
               )}
             </div>
 
-            <div className="text-xs text-nexus-text-secondary mt-2">
+            <div className="text-xs text-nexus-text-secondary mt-2 flex justify-between items-center">
               <p>Powered by OpenAI Assistant</p>
+              {error && (
+                <p className="text-red-300 text-xs">
+                  Note: This feature requires setting up OpenAI API keys in Supabase
+                </p>
+              )}
             </div>
           </motion.div>
         </motion.div>

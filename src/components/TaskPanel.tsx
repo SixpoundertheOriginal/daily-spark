@@ -314,6 +314,10 @@ const TaskPanel: React.FC<TaskPanelProps> = ({ viewMode = 'list', onSwitchView }
     }
   };
   
+  const handleSelectTopic = (topic: string) => {
+    setSelectedTopic(topic);
+  };
+  
   const taskStats = {
     total: tasks.length,
     completed: tasks.filter(task => task.completed).length,
