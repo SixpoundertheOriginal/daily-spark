@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Sparkles, ArrowRight, Bot } from 'lucide-react';
+import { Sparkles, ArrowRight, Bot, BarChart } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 
@@ -9,13 +9,17 @@ interface InsightCardProps {
   actionText?: string;
   onAction?: () => void;
   onAskAI?: () => void;
+  onAnalyzeTasks?: () => void;
+  isAnalyzing?: boolean;
 }
 
 const InsightCard: React.FC<InsightCardProps> = ({ 
   insight, 
   actionText = "Optimize Schedule", 
   onAction = () => {},
-  onAskAI
+  onAskAI,
+  onAnalyzeTasks,
+  isAnalyzing = false
 }) => {
   const handleAskAIClick = () => {
     if (onAskAI) {
@@ -26,6 +30,15 @@ const InsightCard: React.FC<InsightCardProps> = ({
     } else {
       toast.error('AI Assistant Unavailable', {
         description: 'The AI assistant is not available at the moment. Please try again later.'
+      });
+    }
+  };
+
+  const handleAnalyzeTasksClick = () => {
+    if (onAnalyzeTasks) {
+      onAnalyzeTasks();
+      toast.info('Task Analysis', {
+        description: 'Analyzing your tasks with AI...'
       });
     }
   };
@@ -68,6 +81,17 @@ const InsightCard: React.FC<InsightCardProps> = ({
               >
                 <Bot size={12} className="mr-2 text-white" />
                 <span>Ask AI Assistant</span>
+              </button>
+            )}
+
+            {onAnalyzeTasks && (
+              <button 
+                onClick={handleAnalyzeTasksClick}
+                className="text-xs glass-button hover:bg-white/15 transition-all duration-300 shadow-lg shadow-nexus-accent-purple/10 rounded-lg px-4 py-2 flex items-center"
+                disabled={isAnalyzing}
+              >
+                <BarChart size={12} className="mr-2 text-white" />
+                <span>{isAnalyzing ? "Analyzing..." : "Analyze Tasks"}</span>
               </button>
             )}
           </motion.div>

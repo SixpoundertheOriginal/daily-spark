@@ -100,3 +100,37 @@ export const markInsightAsRead = async (insightId: string): Promise<boolean> => 
     return false;
   }
 };
+
+// New function to request AI analysis of tasks
+export const analyzeTasksWithAI = async (userId: string, tasks: Task[]): Promise<{success: boolean, insight?: AIInsight, fullAnalysis?: string, error?: string}> => {
+  try {
+    console.log('Requesting AI analysis for', tasks.length, 'tasks');
+    
+    const { data, error } = await supabase.functions.invoke('analyze-tasks', {
+      body: { userId, tasks }
+    });
+    
+    if (error) {
+      console.error('Error invoking analyze-tasks function:', error);
+      throw new Error(error.message || 'Failed to analyze tasks');
+    }
+    
+    console.log('Received analysis response:', data);
+    
+    if (!data.success) {
+      throw new Error(data.error || 'Analysis failed');
+    }
+    
+    return {
+      success: true,
+      insight: data.insight,
+      fullAnalysis: data.fullAnalysis
+    };
+  } catch (error) {
+    console.error('Error analyzing tasks with AI:', error);
+    return {
+      success: false,
+      error: error.message || 'Unknown error occurred'
+    };
+  }
+};

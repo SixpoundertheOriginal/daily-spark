@@ -62,6 +62,9 @@ const TaskPanel: React.FC = () => {
   const [showAIAssistant, setShowAIAssistant] = useState(false);
   const [aiQuery, setAIQuery] = useState<string | null>(null);
   
+  const [isAnalyzingTasks, setIsAnalyzingTasks] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<string | null>(null);
+  
   useEffect(() => {
     if (user) {
       loadTasks();
@@ -247,6 +250,50 @@ const TaskPanel: React.FC = () => {
     });
   };
   
+  const handleAnalyzeTasks = async () => {
+    if (!user || tasks.length === 0) {
+      toast.error('No tasks to analyze', {
+        description: 'Add some tasks first before requesting an analysis'
+      });
+      return;
+    }
+    
+    setIsAnalyzingTasks(true);
+    
+    try {
+      const result = await analyzeTasksWithAI(user.id, tasks);
+      
+      if (result.success) {
+        toast.success('Task analysis complete', {
+          description: 'New insights have been generated based on your tasks'
+        });
+        
+        if (result.insight) {
+          setInsight({
+            content: result.insight.content,
+            actionText: result.insight.action_text,
+            id: result.insight.id
+          });
+        }
+        
+        setAnalysisResult(result.fullAnalysis || null);
+        
+        loadInsights();
+      } else {
+        toast.error('Task analysis failed', {
+          description: result.error || 'Please try again later'
+        });
+      }
+    } catch (error) {
+      console.error('Error analyzing tasks:', error);
+      toast.error('Task analysis failed', {
+        description: 'An unexpected error occurred'
+      });
+    } finally {
+      setIsAnalyzingTasks(false);
+    }
+  };
+  
   const taskStats = {
     total: tasks.length,
     completed: tasks.filter(task => task.completed).length,
@@ -395,6 +442,9 @@ const TaskPanel: React.FC = () => {
             insight={insight.content}
             actionText={insight.actionText}
             onAction={() => console.log('Action clicked:', insight.actionText)}
+            onAskAI={() => setShowAIAssistant(true)}
+            onAnalyzeTasks={handleAnalyzeTasks}
+            isAnalyzing={isAnalyzingTasks}
           />
         ) : loading ? (
           <div className="glass-card p-4 animate-pulse-soft backdrop-blur-xl shadow-xl shadow-nexus-accent-purple/5 border border-white/10">
@@ -569,7 +619,7 @@ const TaskPanel: React.FC = () => {
       <AIAssistant 
         isOpen={showAIAssistant}
         onClose={() => setShowAIAssistant(false)}
-        message={aiQuery}
+        message={aiQuery || analysisResult}
       />
     </div>
   );
