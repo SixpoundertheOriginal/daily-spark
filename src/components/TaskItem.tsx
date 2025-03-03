@@ -33,15 +33,16 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, dateGroup, onToggleCompletion
 
   return (
     <div 
-      className="relative bg-white bg-opacity-5 backdrop-blur-sm rounded-lg p-3 border border-white border-opacity-10 hover:border-opacity-20 transition-all duration-300 animate-slide-up card-hover"
+      className="relative glass-card p-3 hover:bg-white/5 backdrop-blur-xl animate-slide-up card-hover shadow-lg shadow-black/10"
       style={{ animationDelay: `${task.id * 50}ms` }}
     >
       {/* Priority indicator */}
       <div 
-        className="absolute left-0 top-0 bottom-0 w-1 rounded-l-lg" 
+        className="absolute left-0 top-0 bottom-0 w-1 rounded-l-lg shadow-lg"
         style={{
-          background: priorityColor,
-          opacity: priorityOpacity
+          background: `linear-gradient(to bottom, ${priorityColor}, ${priorityColor}80)`,
+          opacity: priorityOpacity,
+          boxShadow: `0 0 10px ${priorityColor}40`
         }}
       ></div>
       
@@ -51,8 +52,8 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, dateGroup, onToggleCompletion
           onClick={() => onToggleCompletion(task.id)}
           className={`mt-0.5 h-5 w-5 rounded-full flex-shrink-0 flex items-center justify-center cursor-pointer transition-all duration-300 ${
             task.completed 
-              ? 'primary-gradient' 
-              : 'border border-white border-opacity-30 hover:border-opacity-50'
+              ? 'primary-gradient shadow-lg shadow-nexus-accent-purple/20' 
+              : 'border border-white border-opacity-30 hover:border-opacity-50 hover:shadow-lg hover:shadow-nexus-accent-purple/10'
           }`}
         >
           {task.completed && (
@@ -83,7 +84,7 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, dateGroup, onToggleCompletion
             </div>
             
             {task.labels.map((label, index) => (
-              <div key={index} className="px-2 py-0.5 rounded-full text-xs bg-white bg-opacity-10 text-nexus-text-secondary flex items-center hover:bg-opacity-15 transition-all">
+              <div key={index} className="px-2 py-0.5 rounded-full text-xs bg-white bg-opacity-10 text-nexus-text-secondary flex items-center backdrop-blur-sm hover:bg-opacity-15 transition-all">
                 <Tag size={10} className="mr-1" />
                 {label}
               </div>

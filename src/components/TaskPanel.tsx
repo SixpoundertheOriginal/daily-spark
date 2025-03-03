@@ -217,18 +217,18 @@ const TaskPanel: React.FC = () => {
   };
   
   return (
-    <div className="flex flex-col h-screen bg-gradient-to-br from-nexus-bg-primary via-nexus-bg-secondary to-[#1a1335] text-white">
+    <div className="flex flex-col h-screen bg-gradient-to-br from-nexus-bg-primary via-nexus-bg-secondary to-[#1a1335] text-white overflow-hidden">
       {/* Header */}
-      <div className="px-6 py-4 border-b border-white/5 flex justify-between items-center animate-slide-down">
+      <div className="px-6 py-4 border-b border-white/5 flex justify-between items-center animate-slide-down backdrop-blur-sm glass-morphism bg-black/20">
         <div>
           <div className="flex items-center">
-            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-white/10 mr-2">
-              <Brain size={14} className="text-nexus-accent-purple" />
+            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-white/10 mr-2 shadow-lg shadow-nexus-accent-purple/20">
+              <Brain size={14} className="text-nexus-accent-purple animate-pulse-soft" />
             </div>
             <span className="text-xs uppercase text-nexus-accent-purple tracking-wider font-light">Nexus</span>
             <span className="ml-1 text-xs text-green-300">• active</span>
           </div>
-          <h1 className="text-2xl font-light mt-1 tracking-tight">Hello, {user.name}</h1>
+          <h1 className="text-2xl font-light mt-1 tracking-tight text-gradient animate-fade-in">Hello, {user.name}</h1>
           <div className="flex items-center text-sm text-nexus-text-secondary">
             <span>{currentDate}</span>
             <span className="mx-1">•</span>
@@ -236,10 +236,10 @@ const TaskPanel: React.FC = () => {
           </div>
         </div>
         <div className="flex items-center space-x-3">
-          <button className="h-9 w-9 flex items-center justify-center rounded-full glass-morphism hover:bg-white/10 transition-all duration-300">
+          <button className="h-9 w-9 flex items-center justify-center rounded-full glass-morphism hover:bg-white/10 transition-all duration-300 shadow-lg shadow-black/20">
             <Settings size={18} className="text-nexus-text-secondary" />
           </button>
-          <div className="h-9 w-9 rounded-full glass-morphism overflow-hidden p-0.5">
+          <div className="h-9 w-9 rounded-full glass-morphism overflow-hidden p-0.5 ring-2 ring-white/10 shadow-lg shadow-nexus-accent-purple/10">
             <img 
               src={user.avatar} 
               alt={user.name} 
@@ -250,7 +250,7 @@ const TaskPanel: React.FC = () => {
       </div>
 
       {/* Task Stats and Actions Bar */}
-      <div className="px-6 py-4 flex justify-between items-center border-b border-white/5 animate-slide-down" style={{ animationDelay: '50ms' }}>
+      <div className="px-6 py-4 flex justify-between items-center border-b border-white/5 animate-slide-down backdrop-blur-sm bg-black/10" style={{ animationDelay: '50ms' }}>
         <div className="flex space-x-6">
           <div className="text-center">
             <p className="text-2xl font-light text-white">{taskStats.total}</p>
@@ -271,39 +271,39 @@ const TaskPanel: React.FC = () => {
         </div>
         <div className="flex space-x-2">
           <button 
-            className="h-9 w-9 flex items-center justify-center rounded-full glass-morphism hover:bg-white/10 transition-all duration-300"
+            className="h-9 w-9 flex items-center justify-center rounded-full glass-morphism hover:bg-white/10 transition-all duration-300 shadow-lg shadow-black/20"
             onClick={() => setShowNewTaskForm(true)}
           >
             <Plus size={18} className="text-nexus-text-secondary" />
           </button>
-          <button className="h-9 w-9 flex items-center justify-center rounded-full glass-morphism hover:bg-white/10 transition-all duration-300">
+          <button className="h-9 w-9 flex items-center justify-center rounded-full glass-morphism hover:bg-white/10 transition-all duration-300 shadow-lg shadow-black/20">
             <Filter size={18} className="text-nexus-text-secondary" />
           </button>
         </div>
       </div>
 
       {/* Filters and Search */}
-      <div className="px-6 py-3 flex flex-wrap gap-2 border-b border-white/5 animate-slide-down" style={{ animationDelay: '100ms' }}>
+      <div className="px-6 py-3 flex flex-wrap gap-2 border-b border-white/5 animate-slide-down backdrop-blur-sm bg-black/5" style={{ animationDelay: '100ms' }}>
         <button 
-          className={`px-3 py-1.5 rounded-full text-sm transition-all duration-300 ${activeFilter === 'all' ? 'glass-morphism bg-white/10 text-white' : 'text-nexus-text-secondary hover:bg-white/5'}`}
+          className={`px-3 py-1.5 rounded-full text-sm transition-all duration-300 ${activeFilter === 'all' ? 'glass-morphism bg-white/10 text-white shadow-lg shadow-nexus-accent-purple/10' : 'text-nexus-text-secondary hover:bg-white/5'}`}
           onClick={() => setActiveFilter('all')}
         >
           All
         </button>
         <button 
-          className={`px-3 py-1.5 rounded-full text-sm transition-all duration-300 ${activeFilter === 'pending' ? 'glass-morphism bg-white/10 text-white' : 'text-nexus-text-secondary hover:bg-white/5'}`}
+          className={`px-3 py-1.5 rounded-full text-sm transition-all duration-300 ${activeFilter === 'pending' ? 'glass-morphism bg-white/10 text-white shadow-lg shadow-nexus-accent-purple/10' : 'text-nexus-text-secondary hover:bg-white/5'}`}
           onClick={() => setActiveFilter('pending')}
         >
           Pending
         </button>
         <button 
-          className={`px-3 py-1.5 rounded-full text-sm transition-all duration-300 ${activeFilter === 'completed' ? 'glass-morphism bg-white/10 text-white' : 'text-nexus-text-secondary hover:bg-white/5'}`}
+          className={`px-3 py-1.5 rounded-full text-sm transition-all duration-300 ${activeFilter === 'completed' ? 'glass-morphism bg-white/10 text-white shadow-lg shadow-nexus-accent-purple/10' : 'text-nexus-text-secondary hover:bg-white/5'}`}
           onClick={() => setActiveFilter('completed')}
         >
           Completed
         </button>
         <button 
-          className={`px-3 py-1.5 rounded-full text-sm transition-all duration-300 ${activeFilter === 'high-priority' ? 'glass-morphism bg-white/10 text-white' : 'text-nexus-text-secondary hover:bg-white/5'}`}
+          className={`px-3 py-1.5 rounded-full text-sm transition-all duration-300 ${activeFilter === 'high-priority' ? 'glass-morphism bg-white/10 text-white shadow-lg shadow-nexus-accent-purple/10' : 'text-nexus-text-secondary hover:bg-white/5'}`}
           onClick={() => setActiveFilter('high-priority')}
         >
           High Priority
@@ -312,7 +312,7 @@ const TaskPanel: React.FC = () => {
           <div className="relative">
             <input
               type="text"
-              className="glass-morphism rounded-full text-sm text-white px-3 py-1.5 pl-9 focus:outline-none focus:bg-white/10 transition-all duration-300 w-full md:w-auto"
+              className="glass-morphism rounded-full text-sm text-white px-3 py-1.5 pl-9 focus:outline-none focus:bg-white/10 transition-all duration-300 w-full md:w-auto shadow-lg shadow-black/10"
               placeholder="Search tasks..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -332,7 +332,7 @@ const TaskPanel: React.FC = () => {
       </div>
 
       {/* Tasks List */}
-      <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
+      <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6 backdrop-blur-sm">
         {Object.entries(orderedGroups).map(([dateGroup, tasksInGroup], groupIndex) => (
           <div key={dateGroup} className="animate-slide-up" style={{ animationDelay: `${200 + groupIndex * 50}ms` }}>
             <div className="flex items-center mb-3">
@@ -364,7 +364,7 @@ const TaskPanel: React.FC = () => {
       </div>
 
       {/* Command Bar */}
-      <div className="px-6 py-4 border-t border-white/5 animate-slide-up">
+      <div className="px-6 py-4 border-t border-white/5 animate-slide-up glass-morphism bg-black/30 backdrop-blur-md">
         <CommandBar onCommand={handleCommand} />
       </div>
 
