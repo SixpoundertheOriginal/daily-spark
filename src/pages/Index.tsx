@@ -1,7 +1,6 @@
 
 import React, { useState } from 'react';
 import TaskPanel from '../components/TaskPanel';
-import TopicCardView from '../components/TopicCardView';
 import { Button } from '@/components/ui/button';
 import { LayoutGrid, List } from 'lucide-react';
 import { motion } from 'framer-motion';
