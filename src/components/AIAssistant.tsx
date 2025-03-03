@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Bot, X, Sparkles, AlertCircle, RefreshCcw, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { askAssistant } from '../services/assistantService';
 
 interface AIAssistantProps {
   isOpen: boolean;
@@ -26,29 +25,13 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose, message }) =
     setResponse(null);
     
     try {
-      console.log("Calling chat-with-assistant function with message:", userMessage);
+      const assistantResponse = await askAssistant(userMessage);
       
-      const { data, error: invokeError } = await supabase.functions.invoke('chat-with-assistant', {
-        body: { message: userMessage }
-      });
-
-      if (invokeError) {
-        console.error('Error invoking function:', invokeError);
-        throw invokeError;
-      }
-      
-      if (data?.error) {
-        console.error('API returned an error:', data.error, data.details);
-        throw new Error(data.details || data.error);
-      }
-
-      console.log("Response received from chat-with-assistant:", data);
-      
-      if (!data?.response) {
+      if (assistantResponse) {
+        setResponse(assistantResponse);
+      } else {
         throw new Error("No response received from the assistant");
       }
-      
-      setResponse(data.response);
     } catch (err: any) {
       console.error('Error fetching AI response:', err);
       

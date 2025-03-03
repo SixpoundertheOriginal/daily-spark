@@ -1,13 +1,39 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import TaskPanel from '../components/TaskPanel';
 import { Button } from '@/components/ui/button';
 import { LayoutGrid, List } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
+import { checkAssistantStatus } from '../services/assistantService';
 
 const Index = () => {
   const [viewMode, setViewMode] = useState<'list' | 'card'>('list');
+  const [assistantConfigured, setAssistantConfigured] = useState<boolean | null>(null);
+  
+  useEffect(() => {
+    const verifyAssistantConfig = async () => {
+      try {
+        const status = await checkAssistantStatus();
+        setAssistantConfigured(status.configured);
+        
+        if (!status.configured) {
+          toast.error('OpenAI Assistant Not Configured', {
+            description: status.details || 'Please check your API keys in Supabase',
+          });
+        } else {
+          toast.success('OpenAI Assistant Connected', {
+            description: `Connected to ${status.assistantName || 'your assistant'}`,
+          });
+        }
+      } catch (error) {
+        console.error('Error verifying assistant config:', error);
+        setAssistantConfigured(false);
+      }
+    };
+    
+    verifyAssistantConfig();
+  }, []);
   
   const handleSwitchView = () => {
     const newMode = viewMode === 'list' ? 'card' : 'list';
@@ -61,7 +87,11 @@ const Index = () => {
       
       {/* Content */}
       <div className="relative z-10">
-        <TaskPanel viewMode={viewMode} onSwitchView={handleSwitchView} />
+        <TaskPanel 
+          viewMode={viewMode} 
+          onSwitchView={handleSwitchView} 
+          assistantConfigured={assistantConfigured}
+        />
       </div>
     </div>
   );

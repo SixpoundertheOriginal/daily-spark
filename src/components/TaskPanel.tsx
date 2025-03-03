@@ -36,16 +36,27 @@ interface TaskGroup {
 interface TaskPanelProps {
   viewMode?: 'list' | 'card';
   onSwitchView?: () => void;
+  assistantConfigured?: boolean | null;
 }
 
-const TaskPanel: React.FC<TaskPanelProps> = ({ viewMode = 'list', onSwitchView }) => {
+const TaskPanel: React.FC<TaskPanelProps> = ({ 
+  viewMode = 'list', 
+  onSwitchView,
+  assistantConfigured = null
+}) => {
   const { user, profile, signOut } = useAuth();
   
   const [currentDate, setCurrentDate] = useState('');
   const [currentTime, setCurrentTime] = useState('');
   
   const [aiActive, setAiActive] = useState(true);
-
+  
+  useEffect(() => {
+    if (assistantConfigured !== null) {
+      setAiActive(assistantConfigured);
+    }
+  }, [assistantConfigured]);
+  
   useEffect(() => {
     const updateDateTime = () => {
       const now = new Date();

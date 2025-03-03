@@ -1,6 +1,6 @@
-
 import { supabase } from '../lib/supabase';
 import { Task } from '../types/supabase';
+import { analyzeTasksWithAssistant } from './assistantService';
 
 interface AIInsight {
   id: string;
@@ -101,31 +101,15 @@ export const markInsightAsRead = async (insightId: string): Promise<boolean> => 
   }
 };
 
-// New function to request AI analysis of tasks
+// Update the analyze tasks function to use our new service
 export const analyzeTasksWithAI = async (userId: string, tasks: Task[]): Promise<{success: boolean, insight?: AIInsight, fullAnalysis?: string, error?: string}> => {
   try {
     console.log('Requesting AI analysis for', tasks.length, 'tasks');
     
-    const { data, error } = await supabase.functions.invoke('analyze-tasks', {
-      body: { userId, tasks }
-    });
+    // Use the new assistantService function
+    const result = await analyzeTasksWithAssistant(userId, tasks);
     
-    if (error) {
-      console.error('Error invoking analyze-tasks function:', error);
-      throw new Error(error.message || 'Failed to analyze tasks');
-    }
-    
-    console.log('Received analysis response:', data);
-    
-    if (!data.success) {
-      throw new Error(data.error || 'Analysis failed');
-    }
-    
-    return {
-      success: true,
-      insight: data.insight,
-      fullAnalysis: data.fullAnalysis
-    };
+    return result;
   } catch (error) {
     console.error('Error analyzing tasks with AI:', error);
     return {

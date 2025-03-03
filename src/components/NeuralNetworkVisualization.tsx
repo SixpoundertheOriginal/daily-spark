@@ -1,7 +1,7 @@
-
 import React, { useEffect, useState, useRef } from 'react';
-import { Brain, Sparkles } from 'lucide-react';
+import { Brain, Sparkles, AlertCircle, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { checkAssistantStatus } from '../services/assistantService';
 
 interface NeuralNetworkVisualizationProps {
   isActive?: boolean;
@@ -31,6 +31,16 @@ const NeuralNetworkVisualization: React.FC<NeuralNetworkVisualizationProps> = ({
   }>>([]);
   
   const [timeOfDay, setTimeOfDay] = useState('');
+  const [assistantStatus, setAssistantStatus] = useState<{
+    checked: boolean;
+    configured: boolean;
+    error?: string;
+    assistantName?: string;
+  }>({
+    checked: false,
+    configured: false
+  });
+  
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Generate network dots
@@ -147,6 +157,30 @@ const NeuralNetworkVisualization: React.FC<NeuralNetworkVisualizationProps> = ({
     setTimeOfDay(timeGreeting);
   }, []);
   
+  // Check OpenAI Assistant status
+  useEffect(() => {
+    const checkStatus = async () => {
+      try {
+        const status = await checkAssistantStatus();
+        setAssistantStatus({
+          checked: true,
+          configured: status.configured,
+          error: status.error,
+          assistantName: status.assistantName
+        });
+      } catch (error) {
+        console.error('Error checking assistant status:', error);
+        setAssistantStatus({
+          checked: true,
+          configured: false,
+          error: 'Failed to check status'
+        });
+      }
+    };
+    
+    checkStatus();
+  }, []);
+  
   return (
     <div className="relative w-full rounded-xl glass-card p-4 md:p-6 border border-white/10 bg-gradient-to-br from-black/40 to-black/20 shadow-xl backdrop-blur-md overflow-hidden">
       {/* Neural Network Background */}
@@ -227,7 +261,11 @@ const NeuralNetworkVisualization: React.FC<NeuralNetworkVisualizationProps> = ({
             <h2 className="text-xl md:text-2xl font-light text-gradient">Nexus AI</h2>
             <div className="flex items-center space-x-2">
               <span className={`h-2 w-2 rounded-full ${isActive ? 'bg-green-400' : 'bg-gray-400'}`}></span>
-              <span className="text-xs text-nexus-text-secondary">{isActive ? 'Active' : 'Standby'}</span>
+              <span className="text-xs text-nexus-text-secondary">
+                {assistantStatus.checked && assistantStatus.configured 
+                  ? `Active${assistantStatus.assistantName ? ` • ${assistantStatus.assistantName}` : ''}` 
+                  : 'Standby'}
+              </span>
             </div>
           </div>
         </div>
@@ -247,7 +285,7 @@ const NeuralNetworkVisualization: React.FC<NeuralNetworkVisualizationProps> = ({
         )}
       </div>
       
-      {/* Optional Insights Preview */}
+      {/* Insights Preview or Status Message */}
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -255,10 +293,31 @@ const NeuralNetworkVisualization: React.FC<NeuralNetworkVisualizationProps> = ({
         className="mt-6 bg-white/5 rounded-lg p-3 border border-white/10"
       >
         <div className="flex items-center">
-          <div className="h-8 w-8 bg-nexus-accent-purple/20 rounded-md flex items-center justify-center mr-3">
-            <Brain size={16} className="text-nexus-accent-purple" />
-          </div>
-          <p className="text-sm text-white">Nexus AI is analyzing your tasks and schedule...</p>
+          {assistantStatus.checked && !assistantStatus.configured ? (
+            <>
+              <div className="h-8 w-8 bg-red-500/20 rounded-md flex items-center justify-center mr-3">
+                <AlertCircle size={16} className="text-red-400" />
+              </div>
+              <div>
+                <p className="text-sm text-white">OpenAI Assistant not configured properly</p>
+                <p className="text-xs text-red-300">{assistantStatus.error}</p>
+              </div>
+            </>
+          ) : assistantStatus.checked && assistantStatus.configured ? (
+            <>
+              <div className="h-8 w-8 bg-green-500/20 rounded-md flex items-center justify-center mr-3">
+                <Check size={16} className="text-green-400" />
+              </div>
+              <p className="text-sm text-white">OpenAI Assistant connected and ready</p>
+            </>
+          ) : (
+            <>
+              <div className="h-8 w-8 bg-nexus-accent-purple/20 rounded-md flex items-center justify-center mr-3">
+                <Brain size={16} className="text-nexus-accent-purple" />
+              </div>
+              <p className="text-sm text-white">Nexus AI is analyzing your tasks and schedule...</p>
+            </>
+          )}
         </div>
       </motion.div>
     </div>
