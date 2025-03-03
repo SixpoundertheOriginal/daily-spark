@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Brain, 
@@ -10,7 +9,9 @@ import {
   LogOut,
   Command,
   Sparkles,
-  Bot
+  Bot,
+  LayoutGrid,
+  List
 } from 'lucide-react';
 import { formatDate, formatTime, groupOrder, getGroupKey } from '../utils/dateUtils';
 import TaskItem from './TaskItem';
@@ -18,6 +19,7 @@ import InsightCard from './InsightCard';
 import CommandBar from './CommandBar';
 import NewTaskForm from './NewTaskForm';
 import AIAssistant from './AIAssistant';
+import TopicCardView from './TopicCardView';
 import { useAuth } from '../context/AuthContext';
 import { Task } from '../types/supabase';
 import { fetchTasks, updateTask, createTask, deleteTask } from '../services/taskService';
@@ -30,7 +32,12 @@ interface TaskGroup {
   [key: string]: Task[];
 }
 
-const TaskPanel: React.FC = () => {
+interface TaskPanelProps {
+  viewMode?: 'list' | 'card';
+  onSwitchView?: () => void;
+}
+
+const TaskPanel: React.FC<TaskPanelProps> = ({ viewMode = 'list', onSwitchView }) => {
   const { user, profile, signOut } = useAuth();
   
   const [currentDate, setCurrentDate] = useState('');
@@ -65,6 +72,8 @@ const TaskPanel: React.FC = () => {
   
   const [isAnalyzingTasks, setIsAnalyzingTasks] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<string | null>(null);
+  
+  const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
   
   useEffect(() => {
     if (user) {
@@ -137,7 +146,17 @@ const TaskPanel: React.FC = () => {
   };
 
   const filteredTasks = useMemo(() => {
-    return tasks.filter(task => {
+    let filtered = tasks;
+    
+    if (viewMode === 'card' && selectedTopic) {
+      filtered = tasks.filter(task => 
+        task.labels && 
+        task.labels.length > 0 && 
+        task.labels.some(label => label.toLowerCase() === selectedTopic.toLowerCase())
+      );
+    }
+    
+    return filtered.filter(task => {
       if (activeFilter === 'completed' && !task.completed) return false;
       if (activeFilter === 'pending' && task.completed) return false;
       
@@ -154,7 +173,7 @@ const TaskPanel: React.FC = () => {
       
       return true;
     });
-  }, [tasks, activeFilter, searchQuery]);
+  }, [tasks, activeFilter, searchQuery, viewMode, selectedTopic]);
   
   const orderedGroups = useMemo(() => {
     const groupedTasks = filteredTasks.reduce((groups, task) => {
@@ -327,6 +346,19 @@ const TaskPanel: React.FC = () => {
           </div>
         </div>
         <div className="flex items-center space-x-3">
+          {onSwitchView && (
+            <Button 
+              variant="ghost" 
+              className="h-9 w-9 p-0 rounded-full glass-morphism hover:bg-white/10 hidden md:flex"
+              onClick={onSwitchView}
+              title={viewMode === 'list' ? "Switch to Card View" : "Switch to List View"}
+            >
+              {viewMode === 'list' ? 
+                <LayoutGrid size={18} className="text-nexus-text-secondary" /> : 
+                <List size={18} className="text-nexus-text-secondary" />
+              }
+            </Button>
+          )}
           <Button 
             variant="ghost" 
             className="h-9 w-9 p-0 rounded-full glass-morphism hover:bg-white/10"
@@ -418,6 +450,14 @@ const TaskPanel: React.FC = () => {
         >
           High Priority
         </button>
+        {selectedTopic && (
+          <button 
+            className="px-3 py-1.5 rounded-full text-sm bg-gradient-to-r from-nexus-accent-purple to-nexus-accent-pink text-white shadow-lg shadow-nexus-accent-purple/10"
+            onClick={() => setSelectedTopic(null)}
+          >
+            Topic: {selectedTopic} ✕
+          </button>
+        )}
         <div className="flex-1 flex justify-end">
           <div className="relative w-full md:w-auto">
             <input
@@ -480,7 +520,7 @@ const TaskPanel: React.FC = () => {
         )}
       </motion.div>
 
-      <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6 backdrop-blur-sm scrollbar-none">
+      <div className="flex-1 overflow-y-auto px-6 py-4 backdrop-blur-sm scrollbar-none">
         {loading ? (
           <div className="space-y-4">
             {[1, 2, 3].map((n) => (
@@ -501,6 +541,11 @@ const TaskPanel: React.FC = () => {
               </motion.div>
             ))}
           </div>
+        ) : viewMode === 'card' ? (
+          <TopicCardView 
+            tasks={tasks} 
+            onSelectTopic={handleSelectTopic} 
+          />
         ) : Object.keys(orderedGroups).length === 0 ? (
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
@@ -520,51 +565,53 @@ const TaskPanel: React.FC = () => {
             </Button>
           </motion.div>
         ) : (
-          <AnimatePresence>
-            {Object.entries(orderedGroups).map(([dateGroup, tasksInGroup], groupIndex) => (
-              <motion.div 
-                key={dateGroup}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: groupIndex * 0.1 }}
-              >
-                <div className="flex items-center mb-3">
-                  <h3 className="text-sm font-medium text-white">
-                    {dateGroup}
-                  </h3>
-                  <span className="ml-2 px-2 py-0.5 rounded-full text-xs glass-morphism text-nexus-text-secondary">
-                    {tasksInGroup.length}
-                  </span>
-                  {dateGroup === 'Overdue' && (
-                    <span className="ml-2 px-2 py-0.5 rounded-full text-xs bg-red-500/20 text-red-300">
-                      Attention needed
+          <div className="space-y-6">
+            <AnimatePresence>
+              {Object.entries(orderedGroups).map(([dateGroup, tasksInGroup], groupIndex) => (
+                <motion.div 
+                  key={dateGroup}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: groupIndex * 0.1 }}
+                >
+                  <div className="flex items-center mb-3">
+                    <h3 className="text-sm font-medium text-white">
+                      {dateGroup}
+                    </h3>
+                    <span className="ml-2 px-2 py-0.5 rounded-full text-xs glass-morphism text-nexus-text-secondary">
+                      {tasksInGroup.length}
                     </span>
-                  )}
-                </div>
-                
-                <div className="space-y-2">
-                  <AnimatePresence>
-                    {tasksInGroup.map((task, taskIndex) => (
-                      <motion.div
-                        key={task.id}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        transition={{ delay: taskIndex * 0.05 }}
-                        layout
-                      >
-                        <TaskItem 
-                          task={task} 
-                          dateGroup={dateGroup}
-                          onToggleCompletion={toggleTaskCompletion} 
-                        />
-                      </motion.div>
-                    ))}
-                  </AnimatePresence>
-                </div>
-              </motion.div>
-            ))}
-          </AnimatePresence>
+                    {dateGroup === 'Overdue' && (
+                      <span className="ml-2 px-2 py-0.5 rounded-full text-xs bg-red-500/20 text-red-300">
+                        Attention needed
+                      </span>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <AnimatePresence>
+                      {tasksInGroup.map((task, taskIndex) => (
+                        <motion.div
+                          key={task.id}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          transition={{ delay: taskIndex * 0.05 }}
+                          layout
+                        >
+                          <TaskItem 
+                            task={task} 
+                            dateGroup={dateGroup}
+                            onToggleCompletion={toggleTaskCompletion} 
+                          />
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
         )}
       </div>
 
