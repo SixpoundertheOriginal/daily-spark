@@ -1,18 +1,20 @@
 
 import React from 'react';
-import { Sparkles, ArrowRight } from 'lucide-react';
+import { Sparkles, ArrowRight, Bot } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface InsightCardProps {
   insight: string;
   actionText?: string;
   onAction?: () => void;
+  onAskAI?: () => void;
 }
 
 const InsightCard: React.FC<InsightCardProps> = ({ 
   insight, 
   actionText = "Optimize Schedule", 
-  onAction = () => {} 
+  onAction = () => {},
+  onAskAI
 }) => {
   return (
     <motion.div 
@@ -28,7 +30,7 @@ const InsightCard: React.FC<InsightCardProps> = ({
         <div className="ml-4 flex-1">
           <p className="text-white text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: insight }} />
           <motion.div 
-            className="mt-3 flex"
+            className="mt-3 flex flex-wrap gap-2"
             initial={{ opacity: 0.8 }}
             animate={{ opacity: 1 }}
             transition={{ 
@@ -44,6 +46,16 @@ const InsightCard: React.FC<InsightCardProps> = ({
               <span>{actionText}</span>
               <ArrowRight size={12} className="ml-2 text-white" />
             </button>
+            
+            {onAskAI && (
+              <button 
+                onClick={onAskAI}
+                className="text-xs glass-button hover:bg-white/15 transition-all duration-300 shadow-lg shadow-nexus-accent-purple/10 rounded-lg px-4 py-2 flex items-center"
+              >
+                <Bot size={12} className="mr-2 text-white" />
+                <span>Ask AI Assistant</span>
+              </button>
+            )}
           </motion.div>
         </div>
       </div>

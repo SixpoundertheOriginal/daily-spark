@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Brain, 
@@ -9,13 +8,15 @@ import {
   Search,
   LogOut,
   Command,
-  Sparkles
+  Sparkles,
+  Bot
 } from 'lucide-react';
 import { formatDate, formatTime, groupOrder, getGroupKey } from '../utils/dateUtils';
 import TaskItem from './TaskItem';
 import InsightCard from './InsightCard';
 import CommandBar from './CommandBar';
 import NewTaskForm from './NewTaskForm';
+import AIAssistant from './AIAssistant';
 import { useAuth } from '../context/AuthContext';
 import { Task } from '../types/supabase';
 import { fetchTasks, updateTask, createTask, deleteTask } from '../services/taskService';
@@ -29,14 +30,11 @@ interface TaskGroup {
 }
 
 const TaskPanel: React.FC = () => {
-  // Use authentication context
   const { user, profile, signOut } = useAuth();
   
-  // State for date and time
   const [currentDate, setCurrentDate] = useState('');
   const [currentTime, setCurrentTime] = useState('');
   
-  // Update time every minute
   useEffect(() => {
     const updateDateTime = () => {
       const now = new Date();
@@ -50,30 +48,26 @@ const TaskPanel: React.FC = () => {
     return () => clearInterval(timeInterval);
   }, []);
   
-  // State for tasks
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   
-  // State for active filter
   const [activeFilter, setActiveFilter] = useState('all');
   
-  // State for search query
   const [searchQuery, setSearchQuery] = useState('');
   
-  // State for new task form visibility
   const [showNewTaskForm, setShowNewTaskForm] = useState(false);
   
-  // State for AI insight
   const [insight, setInsight] = useState<{ content: string, actionText: string, id: string } | null>(null);
   
-  // Load tasks from Supabase
+  const [showAIAssistant, setShowAIAssistant] = useState(false);
+  const [aiQuery, setAIQuery] = useState<string | null>(null);
+  
   useEffect(() => {
     if (user) {
       loadTasks();
     }
   }, [user]);
   
-  // Load AI insights
   useEffect(() => {
     if (user && tasks.length > 0) {
       loadInsights();
@@ -99,7 +93,6 @@ const TaskPanel: React.FC = () => {
     if (!user) return;
     
     try {
-      // First try to get an existing recent insight
       const latestInsight = await getLatestInsight(user.id);
       
       if (latestInsight) {
@@ -109,7 +102,6 @@ const TaskPanel: React.FC = () => {
           id: latestInsight.id
         });
       } else {
-        // If no recent insight exists, generate a new one
         const newInsight = await generateTaskInsights(user.id, tasks);
         if (newInsight) {
           setInsight({
@@ -124,7 +116,6 @@ const TaskPanel: React.FC = () => {
     }
   };
   
-  // Toggle task completion
   const toggleTaskCompletion = async (taskId: string) => {
     const task = tasks.find(t => t.id === taskId);
     if (!task) return;
@@ -141,17 +132,13 @@ const TaskPanel: React.FC = () => {
     }
   };
 
-  // Memoize filtered tasks to improve performance
   const filteredTasks = useMemo(() => {
     return tasks.filter(task => {
-      // Apply status filter
       if (activeFilter === 'completed' && !task.completed) return false;
       if (activeFilter === 'pending' && task.completed) return false;
       
-      // Apply priority filter
       if (activeFilter === 'high-priority' && task.priority !== 'high') return false;
       
-      // Apply search filter if search query exists
       if (searchQuery.trim() !== '') {
         const query = searchQuery.toLowerCase();
         return (
@@ -165,9 +152,7 @@ const TaskPanel: React.FC = () => {
     });
   }, [tasks, activeFilter, searchQuery]);
   
-  // Memoize grouped tasks to improve performance
   const orderedGroups = useMemo(() => {
-    // Group tasks by date
     const groupedTasks = filteredTasks.reduce((groups, task) => {
       const groupKey = getGroupKey(task.deadline);
       
@@ -179,7 +164,6 @@ const TaskPanel: React.FC = () => {
       return groups;
     }, {} as TaskGroup);
     
-    // Ensure proper order of groups
     const ordered: TaskGroup = {};
     groupOrder.forEach(key => {
       if (groupedTasks[key]) {
@@ -190,7 +174,6 @@ const TaskPanel: React.FC = () => {
     return ordered;
   }, [filteredTasks]);
   
-  // Handle new task form submission
   const handleNewTaskSubmit = async (newTask: {
     title: string;
     description: string;
@@ -223,9 +206,7 @@ const TaskPanel: React.FC = () => {
     }
   };
   
-  // Handle command input
   const handleCommand = (command: string) => {
-    // Simple command handling - add more sophisticated parsing later
     if (command.toLowerCase().startsWith('add ') || command.toLowerCase().startsWith('new task')) {
       setShowNewTaskForm(true);
     } else if (command.toLowerCase().includes('filter ')) {
@@ -245,10 +226,27 @@ const TaskPanel: React.FC = () => {
       setSearchQuery(searchTerm);
     } else if (command.toLowerCase() === 'sign out' || command.toLowerCase() === 'logout') {
       signOut();
+    } else if (command.toLowerCase().startsWith('ask ai:') || command.toLowerCase().startsWith('ai ')) {
+      const query = command.toLowerCase().startsWith('ask ai:') 
+        ? command.substring(7).trim() 
+        : command.substring(3).trim();
+      
+      if (query) {
+        setAIQuery(query);
+        setShowAIAssistant(true);
+      }
     }
   };
   
-  // Task statistics
+  const handleAIQuery = (query: string) => {
+    setAIQuery(query);
+    setShowAIAssistant(true);
+    toast.success('Processing your question...', {
+      description: query,
+      duration: 3000,
+    });
+  };
+  
   const taskStats = {
     total: tasks.length,
     completed: tasks.filter(task => task.completed).length,
@@ -258,7 +256,6 @@ const TaskPanel: React.FC = () => {
   
   return (
     <div className="flex flex-col h-screen bg-gradient-to-br from-nexus-bg-primary via-nexus-bg-secondary to-[#1a1335] text-white overflow-hidden">
-      {/* Header */}
       <motion.div 
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -300,7 +297,6 @@ const TaskPanel: React.FC = () => {
         </div>
       </motion.div>
 
-      {/* Task Stats and Actions Bar */}
       <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -344,7 +340,6 @@ const TaskPanel: React.FC = () => {
         </div>
       </motion.div>
 
-      {/* Filters and Search */}
       <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -389,7 +384,6 @@ const TaskPanel: React.FC = () => {
         </div>
       </motion.div>
 
-      {/* AI Insight */}
       <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -435,7 +429,6 @@ const TaskPanel: React.FC = () => {
         )}
       </motion.div>
 
-      {/* Tasks List */}
       <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6 backdrop-blur-sm scrollbar-none">
         {loading ? (
           <div className="space-y-4">
@@ -524,7 +517,6 @@ const TaskPanel: React.FC = () => {
         )}
       </div>
 
-      {/* Mobile Quick Actions & Command Bar */}
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -542,15 +534,15 @@ const TaskPanel: React.FC = () => {
           <Button 
             variant="ghost"
             className="flex-1 py-2 glass-morphism hover:bg-white/10 transition-all duration-300 shadow-lg shadow-black/20"
+            onClick={() => setShowAIAssistant(true)}
           >
-            <Filter size={16} className="mr-2" />
-            Filter
+            <Bot size={16} className="mr-2" />
+            Ask AI
           </Button>
         </div>
-        <CommandBar onCommand={handleCommand} />
+        <CommandBar onCommand={handleCommand} onAIQuery={handleAIQuery} />
       </motion.div>
 
-      {/* New Task Form Modal */}
       <AnimatePresence>
         {showNewTaskForm && (
           <motion.div 
@@ -573,6 +565,12 @@ const TaskPanel: React.FC = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <AIAssistant 
+        isOpen={showAIAssistant}
+        onClose={() => setShowAIAssistant(false)}
+        message={aiQuery}
+      />
     </div>
   );
 };

@@ -1,9 +1,10 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Brain, Command, ArrowRight } from 'lucide-react';
+import { Bot, Command, ArrowRight } from 'lucide-react';
 
 interface CommandBarProps {
   onCommand: (command: string) => void;
+  onAIQuery: (query: string) => void;
 }
 
 const COMMAND_EXAMPLES = [
@@ -12,10 +13,12 @@ const COMMAND_EXAMPLES = [
   "Filter pending",
   "Filter high-priority",
   "Search meeting",
+  "Ask AI: How to prioritize my tasks?",
+  "Ask AI: Summarize my day",
   "Sign out"
 ];
 
-const CommandBar: React.FC<CommandBarProps> = ({ onCommand }) => {
+const CommandBar: React.FC<CommandBarProps> = ({ onCommand, onAIQuery }) => {
   const [command, setCommand] = useState('');
   const [placeholder, setPlaceholder] = useState('Type a command or add a task...');
   const [showHints, setShowHints] = useState(false);
@@ -37,9 +40,22 @@ const CommandBar: React.FC<CommandBarProps> = ({ onCommand }) => {
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && command.trim()) {
-      onCommand(command);
-      setCommand('');
-      setShowHints(false);
+      // Check if it's an AI query
+      if (command.toLowerCase().startsWith('ask ai:') || command.toLowerCase().startsWith('ai ')) {
+        const query = command.toLowerCase().startsWith('ask ai:') 
+          ? command.substring(7).trim() 
+          : command.substring(3).trim();
+        
+        if (query) {
+          onAIQuery(query);
+          setCommand('');
+          setShowHints(false);
+        }
+      } else {
+        onCommand(command);
+        setCommand('');
+        setShowHints(false);
+      }
     } else if (e.key === '/' && command === '') {
       e.preventDefault();
       setShowHints(true);
@@ -60,7 +76,11 @@ const CommandBar: React.FC<CommandBarProps> = ({ onCommand }) => {
     <div className="relative">
       <div className="bg-black/30 backdrop-blur-xl rounded-2xl border border-white/10 p-3 flex items-center animate-slide-up shadow-xl shadow-black/20">
         <div className="h-8 w-8 primary-gradient rounded-xl flex items-center justify-center mr-3 animate-pulse-soft shadow-lg shadow-nexus-accent-purple/20">
-          <Command size={18} className="text-white" />
+          {command.toLowerCase().startsWith('ask ai:') || command.toLowerCase().startsWith('ai ') ? (
+            <Bot size={18} className="text-white" />
+          ) : (
+            <Command size={18} className="text-white" />
+          )}
         </div>
         
         <input 
@@ -82,7 +102,17 @@ const CommandBar: React.FC<CommandBarProps> = ({ onCommand }) => {
           <button 
             onClick={() => {
               if (command.trim()) {
-                onCommand(command);
+                if (command.toLowerCase().startsWith('ask ai:') || command.toLowerCase().startsWith('ai ')) {
+                  const query = command.toLowerCase().startsWith('ask ai:') 
+                    ? command.substring(7).trim() 
+                    : command.substring(3).trim();
+                  
+                  if (query) {
+                    onAIQuery(query);
+                  }
+                } else {
+                  onCommand(command);
+                }
                 setCommand('');
                 setShowHints(false);
               }
@@ -104,7 +134,9 @@ const CommandBar: React.FC<CommandBarProps> = ({ onCommand }) => {
                 className="px-2 py-1.5 text-sm text-white rounded-lg hover:bg-white/10 cursor-pointer transition-colors flex items-center"
                 onClick={() => applyHint(hint)}
               >
-                <span className="text-xs px-1.5 py-0.5 rounded bg-white/10 text-nexus-text-secondary mr-2">/</span>
+                <span className="text-xs px-1.5 py-0.5 rounded bg-white/10 text-nexus-text-secondary mr-2">
+                  {hint.toLowerCase().startsWith('ask ai:') ? 'AI' : '/'}
+                </span>
                 {hint}
               </div>
             ))}
