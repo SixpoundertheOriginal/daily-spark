@@ -18,20 +18,27 @@ serve(async (req) => {
   }
 
   try {
-    // Validate that the API key and assistant ID are set
+    // Check if OpenAI API key is set
     if (!OPENAI_API_KEY) {
       console.error("OPENAI_API_KEY is not set");
-      throw new Error("OPENAI_API_KEY is not set");
+      throw new Error("OpenAI API key is not configured. Please set the OPENAI_API_KEY environment variable.");
     }
     
+    // Check if Assistant ID is set
     if (!ASSISTANT_ID) {
       console.error("ASSISTANT_ID is not set");
-      throw new Error("ASSISTANT_ID is not set");
+      throw new Error("OpenAI Assistant ID is not configured. Please set the ASSISTANT_ID environment variable.");
     }
 
     console.log("Environment variables validated successfully");
 
-    const { message } = await req.json();
+    const reqData = await req.json();
+    const message = reqData.message;
+    
+    if (!message) {
+      throw new Error("No message provided in the request body");
+    }
+    
     console.log("User message:", message);
 
     // Step 1: Create a Thread
@@ -49,7 +56,7 @@ serve(async (req) => {
     if (!threadResponse.ok) {
       const error = await threadResponse.json();
       console.error("Thread creation error:", error);
-      throw new Error(`Failed to create thread: ${error.error?.message || "Unknown error"}`);
+      throw new Error(`Failed to create thread: ${error.error?.message || JSON.stringify(error)}`);
     }
 
     const threadData = await threadResponse.json();
@@ -74,7 +81,7 @@ serve(async (req) => {
     if (!messageResponse.ok) {
       const error = await messageResponse.json();
       console.error("Message creation error:", error);
-      throw new Error(`Failed to create message: ${error.error?.message || "Unknown error"}`);
+      throw new Error(`Failed to create message: ${error.error?.message || JSON.stringify(error)}`);
     }
 
     console.log("Message added to thread");
@@ -96,7 +103,7 @@ serve(async (req) => {
     if (!runResponse.ok) {
       const error = await runResponse.json();
       console.error("Run creation error:", error);
-      throw new Error(`Failed to create run: ${error.error?.message || "Unknown error"}`);
+      throw new Error(`Failed to create run: ${error.error?.message || JSON.stringify(error)}`);
     }
 
     const runData = await runResponse.json();
@@ -107,12 +114,13 @@ serve(async (req) => {
     let runStatus = runData.status;
     let responseMessage = null;
     let attempts = 0;
-    const maxAttempts = 30; // Prevent infinite loops
+    const maxAttempts = 60; // Increased max attempts to give more time
+    const delay = 1000; // 1 second delay between checks
 
     while (runStatus !== "completed" && runStatus !== "failed" && runStatus !== "cancelled" && attempts < maxAttempts) {
       // Wait a moment before checking again
       console.log(`Checking run status (attempt ${attempts + 1})...`);
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, delay));
       attempts++;
 
       // Check the status
@@ -127,17 +135,25 @@ serve(async (req) => {
       if (!runCheckResponse.ok) {
         const error = await runCheckResponse.json();
         console.error("Run check error:", error);
-        throw new Error(`Failed to check run status: ${error.error?.message || "Unknown error"}`);
+        throw new Error(`Failed to check run status: ${error.error?.message || JSON.stringify(error)}`);
       }
 
       const runCheckData = await runCheckResponse.json();
       runStatus = runCheckData.status;
       console.log("Current run status:", runStatus);
+      
+      // If the run requires action, we can handle that here
+      if (runStatus === "requires_action") {
+        console.log("Run requires action:", runCheckData.required_action);
+        // This is a simplified handling - in a real app, you'd want to handle this properly
+        runStatus = "failed";
+        throw new Error("Run requires action which is not supported in this implementation");
+      }
     }
 
     if (runStatus !== "completed") {
       console.error(`Run ended with non-completed status: ${runStatus}`);
-      throw new Error(`Run ended with status: ${runStatus}`);
+      throw new Error(`Run ended with status: ${runStatus}. The process timed out or failed.`);
     }
 
     // Step 5: Retrieve the Messages added by the Assistant
@@ -153,7 +169,7 @@ serve(async (req) => {
     if (!messagesResponse.ok) {
       const error = await messagesResponse.json();
       console.error("Messages retrieval error:", error);
-      throw new Error(`Failed to retrieve messages: ${error.error?.message || "Unknown error"}`);
+      throw new Error(`Failed to retrieve messages: ${error.error?.message || JSON.stringify(error)}`);
     }
 
     const messagesData = await messagesResponse.json();
@@ -181,10 +197,25 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" }
     });
   } catch (error) {
-    console.error("Error:", error.message);
+    console.error("Error:", error.message, error.stack);
+    
+    // Provide a more detailed error message
+    let errorMessage = error.message;
+    let details = "An error occurred while processing your request to the OpenAI Assistant API.";
+    
+    // Determine if this is an environment variable issue
+    if (errorMessage.includes("OPENAI_API_KEY") || errorMessage.includes("ASSISTANT_ID")) {
+      details = "Missing required environment variables. Please ensure OPENAI_API_KEY and ASSISTANT_ID are set in Supabase Edge Functions Secrets.";
+    }
+    
+    // Network or API error
+    if (errorMessage.includes("Failed to fetch")) {
+      details = "Failed to connect to OpenAI API. This could be due to network issues or rate limiting.";
+    }
+    
     return new Response(JSON.stringify({ 
-      error: error.message,
-      details: "An error occurred while processing your request to the OpenAI Assistant API." 
+      error: errorMessage,
+      details: details 
     }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" }

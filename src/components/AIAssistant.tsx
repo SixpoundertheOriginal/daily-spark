@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Bot, X, Sparkles, AlertCircle, RefreshCcw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
@@ -17,13 +17,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose, message }) =
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState<number>(0);
 
-  useEffect(() => {
-    if (message && isOpen) {
-      fetchResponse(message);
-    }
-  }, [message, isOpen, retryCount]);
-
-  const fetchResponse = async (userMessage: string) => {
+  const fetchResponse = useCallback(async (userMessage: string) => {
     setLoading(true);
     setError(null);
     setResponse(null);
@@ -31,32 +25,54 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose, message }) =
     try {
       console.log("Calling chat-with-assistant function with message:", userMessage);
       
-      const { data, error } = await supabase.functions.invoke('chat-with-assistant', {
+      const { data, error: invokeError } = await supabase.functions.invoke('chat-with-assistant', {
         body: { message: userMessage }
       });
 
-      if (error) {
-        console.error('Error fetching AI response:', error);
-        throw error;
+      if (invokeError) {
+        console.error('Error invoking function:', invokeError);
+        throw invokeError;
       }
       
       if (data.error) {
-        console.error('API returned an error:', data.error);
-        throw new Error(data.error);
+        console.error('API returned an error:', data.error, data.details);
+        throw new Error(data.details || data.error);
       }
 
       console.log("Response received from chat-with-assistant:", data);
+      
+      if (!data.response) {
+        throw new Error("No response received from the assistant");
+      }
+      
       setResponse(data.response);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error fetching AI response:', err);
-      setError('Failed to get a response from the assistant. Please try again.');
+      
+      // Determine the error message to show to the user
+      let errorMessage = 'Failed to connect to the AI service. Please try again later.';
+      
+      if (err.message?.includes('OPENAI_API_KEY') || err.message?.includes('ASSISTANT_ID')) {
+        errorMessage = 'AI service is not properly configured. Please contact support.';
+      } else if (err.message?.includes('Failed to fetch') || err.name === 'FunctionsFetchError') {
+        errorMessage = 'Unable to connect to the AI service. Please check your internet connection and try again.';
+      }
+      
+      setError(errorMessage);
+      
       toast.error('AI Assistant Error', {
-        description: 'Failed to connect to the AI service. Please try again later.',
+        description: errorMessage,
       });
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (message && isOpen) {
+      fetchResponse(message);
+    }
+  }, [message, isOpen, retryCount, fetchResponse]);
 
   const handleRetry = () => {
     setRetryCount(prev => prev + 1);

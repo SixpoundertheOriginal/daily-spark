@@ -23,6 +23,10 @@ const InsightCard: React.FC<InsightCardProps> = ({
       toast.info('AI Assistant', {
         description: 'Opening AI assistant to help you...'
       });
+    } else {
+      toast.error('AI Assistant Unavailable', {
+        description: 'The AI assistant is not available at the moment. Please try again later.'
+      });
     }
   };
 
