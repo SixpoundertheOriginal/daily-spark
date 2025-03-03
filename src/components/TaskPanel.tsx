@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Brain, 
@@ -20,7 +21,7 @@ import AIAssistant from './AIAssistant';
 import { useAuth } from '../context/AuthContext';
 import { Task } from '../types/supabase';
 import { fetchTasks, updateTask, createTask, deleteTask } from '../services/taskService';
-import { generateTaskInsights, getLatestInsight } from '../services/aiService';
+import { generateTaskInsights, getLatestInsight, analyzeTasksWithAI } from '../services/aiService';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
