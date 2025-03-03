@@ -60,7 +60,15 @@ export const checkAssistantStatus = async (): Promise<{
       };
     }
     
-    return data || { configured: false, error: 'Unknown error' };
+    if (!data) {
+      return { 
+        configured: false, 
+        error: 'No response data', 
+        details: 'Empty response from status check endpoint'
+      };
+    }
+    
+    return data;
   } catch (err: any) {
     console.error('Error in checkAssistantStatus:', err);
     return { 

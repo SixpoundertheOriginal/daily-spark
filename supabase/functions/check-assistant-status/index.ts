@@ -55,27 +55,42 @@ serve(async (req) => {
         }
       });
       
-      const assistantData = await assistantResponse.json();
-      
-      if (assistantResponse.ok) {
-        console.log("OpenAI API key and Assistant ID are valid");
-        return new Response(JSON.stringify({ 
-          configured: true,
-          assistantName: assistantData.name,
-          assistantModel: assistantData.model
-        }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" }
-        });
-      } else {
-        console.error("Error validating assistant:", assistantData);
+      if (!assistantResponse.ok) {
+        const errorData = await assistantResponse.json();
+        console.error("Error validating assistant:", errorData);
+        
+        let errorMessage = 'Failed to validate OpenAI Assistant configuration';
+        let errorDetails = 'Could not connect to OpenAI API or invalid assistant ID';
+        
+        if (errorData?.error?.message) {
+          errorMessage = errorData.error.message;
+          
+          if (errorData.error.message.includes('API key')) {
+            errorDetails = 'Your OpenAI API key appears to be invalid or has insufficient permissions';
+          } else if (errorData.error.message.includes('No assistant found')) {
+            errorDetails = 'The Assistant ID provided does not exist or you do not have access to it';
+          }
+        }
+        
         return new Response(JSON.stringify({ 
           configured: false, 
-          error: 'Invalid configuration',
-          details: assistantData.error?.message || 'Failed to validate OpenAI Assistant configuration'
+          error: errorMessage,
+          details: errorDetails
         }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" }
         });
       }
+      
+      const assistantData = await assistantResponse.json();
+      
+      console.log("OpenAI API key and Assistant ID are valid");
+      return new Response(JSON.stringify({ 
+        configured: true,
+        assistantName: assistantData.name,
+        assistantModel: assistantData.model
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
     } catch (validationError) {
       console.error("Error validating OpenAI configuration:", validationError);
       return new Response(JSON.stringify({ 

@@ -35,7 +35,9 @@ const NeuralNetworkVisualization: React.FC<NeuralNetworkVisualizationProps> = ({
     checked: boolean;
     configured: boolean;
     error?: string;
+    details?: string;
     assistantName?: string;
+    assistantModel?: string;
   }>({
     checked: false,
     configured: false
@@ -43,7 +45,6 @@ const NeuralNetworkVisualization: React.FC<NeuralNetworkVisualizationProps> = ({
   
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Generate network dots
   useEffect(() => {
     const generateNetwork = () => {
       if (!containerRef.current) return;
@@ -52,7 +53,6 @@ const NeuralNetworkVisualization: React.FC<NeuralNetworkVisualizationProps> = ({
       const width = container.clientWidth;
       const height = container.clientHeight;
       
-      // Generate dots
       const dotCount = 12;
       const newDots = [];
       
@@ -70,18 +70,16 @@ const NeuralNetworkVisualization: React.FC<NeuralNetworkVisualizationProps> = ({
       
       setDots(newDots);
       
-      // Generate connections (not all dots are connected)
       const newConnections = [];
       
       for (let i = 0; i < dotCount; i++) {
         for (let j = i + 1; j < dotCount; j++) {
-          // Only connect some dots (about 30%)
           if (Math.random() < 0.3) {
             newConnections.push({
               id: `${i}-${j}`,
               sourceId: i,
               targetId: j,
-              strength: Math.random() * 0.8 + 0.2, // opacity varies
+              strength: Math.random() * 0.8 + 0.2,
               pulseDelay: Math.random() * 2
             });
           }
@@ -93,7 +91,6 @@ const NeuralNetworkVisualization: React.FC<NeuralNetworkVisualizationProps> = ({
     
     generateNetwork();
     
-    // Regenerate on resize
     const handleResize = () => {
       generateNetwork();
     };
@@ -105,7 +102,6 @@ const NeuralNetworkVisualization: React.FC<NeuralNetworkVisualizationProps> = ({
     };
   }, []);
   
-  // Animate dots with a subtle movement
   useEffect(() => {
     if (dots.length === 0 || !isActive) return;
     
@@ -118,11 +114,9 @@ const NeuralNetworkVisualization: React.FC<NeuralNetworkVisualizationProps> = ({
       
       setDots(prevDots => 
         prevDots.map(dot => {
-          // Update position based on velocity
           let x = dot.x + dot.velocityX;
           let y = dot.y + dot.velocityY;
           
-          // Bounce off edges
           if (x <= 10 || x >= width - 10) {
             x = Math.max(10, Math.min(x, width - 10));
             dot.velocityX *= -1;
@@ -141,7 +135,6 @@ const NeuralNetworkVisualization: React.FC<NeuralNetworkVisualizationProps> = ({
     return () => clearInterval(interval);
   }, [dots, isActive]);
   
-  // Set greeting based on time of day
   useEffect(() => {
     const hours = new Date().getHours();
     let timeGreeting = '';
@@ -157,7 +150,6 @@ const NeuralNetworkVisualization: React.FC<NeuralNetworkVisualizationProps> = ({
     setTimeOfDay(timeGreeting);
   }, []);
   
-  // Check OpenAI Assistant status
   useEffect(() => {
     const checkStatus = async () => {
       try {
@@ -166,7 +158,9 @@ const NeuralNetworkVisualization: React.FC<NeuralNetworkVisualizationProps> = ({
           checked: true,
           configured: status.configured,
           error: status.error,
-          assistantName: status.assistantName
+          details: status.details,
+          assistantName: status.assistantName,
+          assistantModel: status.assistantModel
         });
       } catch (error) {
         console.error('Error checking assistant status:', error);
@@ -183,13 +177,11 @@ const NeuralNetworkVisualization: React.FC<NeuralNetworkVisualizationProps> = ({
   
   return (
     <div className="relative w-full rounded-xl glass-card p-4 md:p-6 border border-white/10 bg-gradient-to-br from-black/40 to-black/20 shadow-xl backdrop-blur-md overflow-hidden">
-      {/* Neural Network Background */}
       <div 
         ref={containerRef}
         className="absolute inset-0 overflow-hidden rounded-xl"
       >
         <svg width="100%" height="100%" className="absolute inset-0">
-          {/* Connections */}
           {connections.map(connection => {
             const source = dots[connection.sourceId];
             const target = dots[connection.targetId];
@@ -219,7 +211,6 @@ const NeuralNetworkVisualization: React.FC<NeuralNetworkVisualizationProps> = ({
             );
           })}
           
-          {/* Dots */}
           {dots.map(dot => (
             <motion.circle
               key={dot.id}
@@ -243,7 +234,6 @@ const NeuralNetworkVisualization: React.FC<NeuralNetworkVisualizationProps> = ({
         </svg>
       </div>
       
-      {/* Content */}
       <div className="relative z-10 flex flex-col md:flex-row items-center md:items-start justify-between gap-4">
         <div className="flex items-center">
           <div className="h-12 w-12 primary-gradient rounded-xl flex items-center justify-center shadow-lg shadow-nexus-accent-purple/20 relative mr-4">
@@ -253,7 +243,6 @@ const NeuralNetworkVisualization: React.FC<NeuralNetworkVisualizationProps> = ({
               <Brain size={24} className="text-white" />
             )}
             
-            {/* Status indicator */}
             <div className={`absolute -bottom-1 -right-1 h-3 w-3 rounded-full border border-white/20 ${isActive ? 'bg-green-400' : 'bg-gray-400'}`}></div>
           </div>
           
@@ -285,7 +274,6 @@ const NeuralNetworkVisualization: React.FC<NeuralNetworkVisualizationProps> = ({
         )}
       </div>
       
-      {/* Insights Preview or Status Message */}
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

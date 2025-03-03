@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { Bot, X, Sparkles, AlertCircle, RefreshCcw, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';

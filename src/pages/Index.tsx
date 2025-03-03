@@ -29,6 +29,10 @@ const Index = () => {
       } catch (error) {
         console.error('Error verifying assistant config:', error);
         setAssistantConfigured(false);
+        
+        toast.error('Assistant Connection Error', {
+          description: 'Failed to verify OpenAI Assistant configuration',
+        });
       }
     };
     
