@@ -2,20 +2,12 @@
 import React from 'react';
 import { MoreVertical, Clock, Tag, MessageSquare, ChevronRight } from 'lucide-react';
 import { isOverdue } from '../utils/dateUtils';
+import { Task } from '../types/supabase';
 
 interface TaskItemProps {
-  task: {
-    id: number;
-    title: string;
-    description: string;
-    deadline: string;
-    priority: string;
-    completed: boolean;
-    labels: string[];
-    commentCount: number;
-  };
+  task: Task;
   dateGroup: string;
-  onToggleCompletion: (taskId: number) => void;
+  onToggleCompletion: (taskId: string) => void;
 }
 
 const TaskItem: React.FC<TaskItemProps> = ({ task, dateGroup, onToggleCompletion }) => {
@@ -34,7 +26,7 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, dateGroup, onToggleCompletion
   return (
     <div 
       className="relative glass-card p-3 hover:bg-white/5 backdrop-blur-xl animate-slide-up card-hover shadow-lg shadow-black/10"
-      style={{ animationDelay: `${task.id * 50}ms` }}
+      style={{ animationDelay: `${50}ms` }}
     >
       {/* Priority indicator */}
       <div 
@@ -83,14 +75,14 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, dateGroup, onToggleCompletion
               </span>
             </div>
             
-            {task.labels.map((label, index) => (
+            {task.labels && task.labels.map((label, index) => (
               <div key={index} className="px-2 py-0.5 rounded-full text-xs bg-white bg-opacity-10 text-nexus-text-secondary flex items-center backdrop-blur-sm hover:bg-opacity-15 transition-all">
                 <Tag size={10} className="mr-1" />
                 {label}
               </div>
             ))}
             
-            {task.commentCount > 0 && (
+            {task.commentCount && task.commentCount > 0 && (
               <div className="flex items-center">
                 <MessageSquare size={12} className="text-nexus-text-muted mr-1" />
                 <span className="text-xs text-nexus-text-secondary">{task.commentCount}</span>

@@ -13,28 +13,20 @@ import TaskItem from './TaskItem';
 import InsightCard from './InsightCard';
 import CommandBar from './CommandBar';
 import NewTaskForm from './NewTaskForm';
-
-interface Task {
-  id: number;
-  title: string;
-  description: string;
-  deadline: string;
-  priority: string;
-  completed: boolean;
-  labels: string[];
-  commentCount: number;
-}
+import { useAuth } from '../context/AuthContext';
+import { Task } from '../types/supabase';
+import { fetchTasks, updateTask, createTask, deleteTask } from '../services/taskService';
+import { generateTaskInsights, getLatestInsight } from '../services/aiService';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
 
 interface TaskGroup {
   [key: string]: Task[];
 }
 
 const TaskPanel: React.FC = () => {
-  // State for user data
-  const [user, setUser] = useState({
-    name: 'Alex Johnson',
-    avatar: 'https://via.placeholder.com/32/32'
-  });
+  // Use authentication context
+  const { user, profile, signOut } = useAuth();
   
   // State for date and time
   const [currentDate, setCurrentDate] = useState('');
@@ -55,58 +47,8 @@ const TaskPanel: React.FC = () => {
   }, []);
   
   // State for tasks
-  const [tasks, setTasks] = useState<Task[]>([
-    {
-      id: 1,
-      title: 'Finalize project proposal',
-      description: 'Complete the final draft with budget estimates and timeline',
-      deadline: 'Today, 5:00 PM',
-      priority: 'high',
-      completed: false,
-      labels: ['Work', 'Q2 Planning'],
-      commentCount: 2
-    },
-    {
-      id: 2,
-      title: 'Review candidate applications',
-      description: 'Screen resumes for the marketing position',
-      deadline: 'Today, 3:00 PM',
-      priority: 'medium',
-      completed: true,
-      labels: ['HR', 'Recruiting'],
-      commentCount: 0
-    },
-    {
-      id: 3,
-      title: 'Schedule team meeting',
-      description: 'Coordinate with team members for weekly sync',
-      deadline: 'Tomorrow, 12:00 PM',
-      priority: 'medium',
-      completed: false,
-      labels: ['Team', 'Coordination'],
-      commentCount: 1
-    },
-    {
-      id: 4,
-      title: 'Update client presentation',
-      description: 'Incorporate feedback from initial review',
-      deadline: 'Tomorrow, 2:00 PM',
-      priority: 'high',
-      completed: false,
-      labels: ['Client', 'Presentation'],
-      commentCount: 3
-    },
-    {
-      id: 5,
-      title: 'Gym workout session',
-      description: 'Focus on cardio and core exercises',
-      deadline: 'Today, 6:30 PM',
-      priority: 'low',
-      completed: false,
-      labels: ['Personal', 'Health'],
-      commentCount: 0
-    }
-  ]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(true);
   
   // State for active filter
   const [activeFilter, setActiveFilter] = useState('all');
@@ -117,11 +59,82 @@ const TaskPanel: React.FC = () => {
   // State for new task form visibility
   const [showNewTaskForm, setShowNewTaskForm] = useState(false);
   
+  // State for AI insight
+  const [insight, setInsight] = useState<{ content: string, actionText: string, id: string } | null>(null);
+  
+  // Load tasks from Supabase
+  useEffect(() => {
+    if (user) {
+      loadTasks();
+    }
+  }, [user]);
+  
+  // Load AI insights
+  useEffect(() => {
+    if (user && tasks.length > 0) {
+      loadInsights();
+    }
+  }, [user, tasks]);
+  
+  const loadTasks = async () => {
+    if (!user) return;
+    
+    setLoading(true);
+    try {
+      const data = await fetchTasks(user.id);
+      setTasks(data);
+    } catch (error) {
+      console.error('Error loading tasks:', error);
+      toast.error('Failed to load tasks');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const loadInsights = async () => {
+    if (!user) return;
+    
+    try {
+      // First try to get an existing recent insight
+      const latestInsight = await getLatestInsight(user.id);
+      
+      if (latestInsight) {
+        setInsight({
+          content: latestInsight.content,
+          actionText: latestInsight.action_text,
+          id: latestInsight.id
+        });
+      } else {
+        // If no recent insight exists, generate a new one
+        const newInsight = await generateTaskInsights(user.id, tasks);
+        if (newInsight) {
+          setInsight({
+            content: newInsight.content,
+            actionText: newInsight.action_text,
+            id: newInsight.id
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error loading insights:', error);
+    }
+  };
+  
   // Toggle task completion
-  const toggleTaskCompletion = (taskId: number) => {
-    setTasks(tasks.map(task => 
-      task.id === taskId ? { ...task, completed: !task.completed } : task
-    ));
+  const toggleTaskCompletion = async (taskId: string) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+    
+    try {
+      const updatedTask = await updateTask(taskId, { completed: !task.completed });
+      if (updatedTask) {
+        setTasks(tasks.map(t => t.id === taskId ? updatedTask : t));
+        toast.success(task.completed ? 'Task marked as pending' : 'Task completed');
+      }
+    } catch (error) {
+      console.error('Error updating task:', error);
+      toast.error('Failed to update task');
+    }
   };
   
   // Filter tasks based on active filter and search query
@@ -167,22 +180,36 @@ const TaskPanel: React.FC = () => {
   });
   
   // Handle new task form submission
-  const handleNewTaskSubmit = (newTask: {
+  const handleNewTaskSubmit = async (newTask: {
     title: string;
     description: string;
     deadline: string;
     priority: string;
     labels: string[];
   }) => {
-    const task = {
-      id: tasks.length + 1,
-      ...newTask,
-      completed: false,
-      commentCount: 0,
-    };
+    if (!user) return;
     
-    setTasks([...tasks, task]);
-    setShowNewTaskForm(false);
+    try {
+      const task = {
+        user_id: user.id,
+        title: newTask.title,
+        description: newTask.description,
+        deadline: newTask.deadline,
+        priority: newTask.priority as 'low' | 'medium' | 'high',
+        completed: false,
+        labels: newTask.labels,
+      };
+      
+      const createdTask = await createTask(task);
+      if (createdTask) {
+        setTasks([...tasks, createdTask]);
+        setShowNewTaskForm(false);
+        toast.success('Task created successfully');
+      }
+    } catch (error) {
+      console.error('Error creating task:', error);
+      toast.error('Failed to create task');
+    }
   };
   
   // Handle command input
@@ -205,6 +232,8 @@ const TaskPanel: React.FC = () => {
     } else if (command.toLowerCase().startsWith('search ')) {
       const searchTerm = command.substring(7).trim();
       setSearchQuery(searchTerm);
+    } else if (command.toLowerCase() === 'sign out' || command.toLowerCase() === 'logout') {
+      signOut();
     }
   };
   
@@ -228,7 +257,9 @@ const TaskPanel: React.FC = () => {
             <span className="text-xs uppercase text-nexus-accent-purple tracking-wider font-light">Nexus</span>
             <span className="ml-1 text-xs text-green-300">• active</span>
           </div>
-          <h1 className="text-2xl font-light mt-1 tracking-tight text-gradient animate-fade-in">Hello, {user.name}</h1>
+          <h1 className="text-2xl font-light mt-1 tracking-tight text-gradient animate-fade-in">
+            Hello, {profile?.full_name || user?.email}
+          </h1>
           <div className="flex items-center text-sm text-nexus-text-secondary">
             <span>{currentDate}</span>
             <span className="mx-1">•</span>
@@ -236,13 +267,17 @@ const TaskPanel: React.FC = () => {
           </div>
         </div>
         <div className="flex items-center space-x-3">
-          <button className="h-9 w-9 flex items-center justify-center rounded-full glass-morphism hover:bg-white/10 transition-all duration-300 shadow-lg shadow-black/20">
+          <Button 
+            variant="ghost" 
+            className="h-9 w-9 p-0 rounded-full glass-morphism hover:bg-white/10"
+            onClick={() => signOut()}
+          >
             <Settings size={18} className="text-nexus-text-secondary" />
-          </button>
+          </Button>
           <div className="h-9 w-9 rounded-full glass-morphism overflow-hidden p-0.5 ring-2 ring-white/10 shadow-lg shadow-nexus-accent-purple/10">
             <img 
-              src={user.avatar} 
-              alt={user.name} 
+              src={profile?.avatar_url || `https://avatar.vercel.sh/${user?.id}`} 
+              alt={profile?.full_name || 'User'} 
               className="rounded-full h-full w-full object-cover"
             />
           </div>
@@ -324,43 +359,89 @@ const TaskPanel: React.FC = () => {
 
       {/* AI Insight */}
       <div className="px-6 py-4 animate-slide-down" style={{ animationDelay: '150ms' }}>
-        <InsightCard 
-          insight="You have <span class='text-nexus-accent-pink font-medium'>2 high-priority tasks</span> due today. Based on your productivity patterns, scheduling them between 9-11 AM would optimize your completion rate."
-          actionText="Optimize Schedule"
-          onAction={() => console.log('Optimizing schedule...')}
-        />
+        {insight ? (
+          <InsightCard 
+            insight={insight.content}
+            actionText={insight.actionText}
+            onAction={() => console.log('Action clicked:', insight.actionText)}
+          />
+        ) : loading ? (
+          <div className="glass-card p-4 animate-pulse-soft backdrop-blur-xl shadow-xl shadow-nexus-accent-purple/5 border border-white/10">
+            <div className="flex items-center space-x-3">
+              <div className="h-10 w-10 rounded-xl bg-white/10"></div>
+              <div className="flex-1 space-y-2">
+                <div className="h-4 bg-white/10 rounded w-3/4"></div>
+                <div className="h-4 bg-white/10 rounded w-1/2"></div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="glass-card p-4 backdrop-blur-xl shadow-xl shadow-nexus-accent-purple/5 border border-white/10">
+            <p className="text-sm text-nexus-text-secondary">No insights available yet. Complete some tasks to get personalized recommendations.</p>
+          </div>
+        )}
       </div>
 
       {/* Tasks List */}
       <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6 backdrop-blur-sm">
-        {Object.entries(orderedGroups).map(([dateGroup, tasksInGroup], groupIndex) => (
-          <div key={dateGroup} className="animate-slide-up" style={{ animationDelay: `${200 + groupIndex * 50}ms` }}>
-            <div className="flex items-center mb-3">
-              <h3 className="text-sm font-medium text-white">
-                {dateGroup}
-              </h3>
-              <span className="ml-2 px-2 py-0.5 rounded-full text-xs glass-morphism text-nexus-text-secondary">
-                {tasksInGroup.length}
-              </span>
-              {dateGroup === 'Overdue' && (
-                <span className="ml-2 px-2 py-0.5 rounded-full text-xs bg-red-500/20 text-red-300">
-                  Attention needed
-                </span>
-              )}
-            </div>
-            
-            <div className="space-y-2">
-              {tasksInGroup.map(task => (
-                <TaskItem 
-                  key={task.id} 
-                  task={task} 
-                  dateGroup={dateGroup}
-                  onToggleCompletion={toggleTaskCompletion} 
-                />
-              ))}
-            </div>
+        {loading ? (
+          <div className="space-y-4">
+            {[1, 2, 3].map((n) => (
+              <div key={n} className="glass-card p-3 animate-pulse-soft">
+                <div className="flex items-center space-x-3">
+                  <div className="h-5 w-5 rounded-full bg-white/10"></div>
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 bg-white/10 rounded w-3/4"></div>
+                    <div className="h-4 bg-white/10 rounded w-1/2"></div>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
+        ) : Object.keys(orderedGroups).length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full text-center">
+            <div className="mb-4 h-16 w-16 rounded-full glass-morphism flex items-center justify-center">
+              <Plus size={24} className="text-nexus-text-secondary" />
+            </div>
+            <h3 className="text-lg font-light text-white mb-2">No tasks found</h3>
+            <p className="text-sm text-nexus-text-secondary mb-4">Create your first task or adjust your filters</p>
+            <Button 
+              onClick={() => setShowNewTaskForm(true)}
+              className="primary-gradient"
+            >
+              Create Task
+            </Button>
+          </div>
+        ) : (
+          Object.entries(orderedGroups).map(([dateGroup, tasksInGroup], groupIndex) => (
+            <div key={dateGroup} className="animate-slide-up" style={{ animationDelay: `${200 + groupIndex * 50}ms` }}>
+              <div className="flex items-center mb-3">
+                <h3 className="text-sm font-medium text-white">
+                  {dateGroup}
+                </h3>
+                <span className="ml-2 px-2 py-0.5 rounded-full text-xs glass-morphism text-nexus-text-secondary">
+                  {tasksInGroup.length}
+                </span>
+                {dateGroup === 'Overdue' && (
+                  <span className="ml-2 px-2 py-0.5 rounded-full text-xs bg-red-500/20 text-red-300">
+                    Attention needed
+                  </span>
+                )}
+              </div>
+              
+              <div className="space-y-2">
+                {tasksInGroup.map(task => (
+                  <TaskItem 
+                    key={task.id} 
+                    task={task} 
+                    dateGroup={dateGroup}
+                    onToggleCompletion={toggleTaskCompletion} 
+                  />
+                ))}
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
       {/* Command Bar */}

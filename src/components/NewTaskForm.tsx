@@ -21,6 +21,8 @@ const NewTaskForm: React.FC<NewTaskFormProps> = ({ onSubmit, onCancel }) => {
     labels: [] as string[]
   });
 
+  const [labelInput, setLabelInput] = useState('');
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setTask({
@@ -41,6 +43,30 @@ const NewTaskForm: React.FC<NewTaskFormProps> = ({ onSubmit, onCancel }) => {
       ...task,
       priority
     });
+  };
+
+  const addLabel = () => {
+    if (labelInput.trim() && !task.labels.includes(labelInput.trim())) {
+      setTask({
+        ...task,
+        labels: [...task.labels, labelInput.trim()]
+      });
+      setLabelInput('');
+    }
+  };
+
+  const removeLabel = (label: string) => {
+    setTask({
+      ...task,
+      labels: task.labels.filter(l => l !== label)
+    });
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && labelInput) {
+      e.preventDefault();
+      addLabel();
+    }
   };
 
   return (
@@ -124,6 +150,42 @@ const NewTaskForm: React.FC<NewTaskFormProps> = ({ onSubmit, onCancel }) => {
               >
                 <span className={task.priority === 'high' ? 'text-pink-300' : 'text-white'}>High</span>
               </button>
+            </div>
+          </div>
+          
+          <div>
+            <div className="text-sm text-nexus-text-secondary mb-2">Labels</div>
+            <div className="flex items-center">
+              <input
+                type="text"
+                placeholder="Add label and press Enter"
+                className="flex-1 glass-morphism rounded-l-xl p-3 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-nexus-accent-purple/50 transition-all duration-300"
+                value={labelInput}
+                onChange={(e) => setLabelInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+              />
+              <button 
+                type="button"
+                onClick={addLabel}
+                className="glass-morphism rounded-r-xl p-3 text-white hover:bg-white/10 transition-all duration-300"
+              >
+                Add
+              </button>
+            </div>
+            
+            <div className="flex flex-wrap gap-2 mt-2">
+              {task.labels.map((label, index) => (
+                <div key={index} className="px-3 py-1.5 rounded-full text-xs bg-white/10 text-white flex items-center gap-2">
+                  {label}
+                  <button 
+                    type="button" 
+                    onClick={() => removeLabel(label)}
+                    className="h-4 w-4 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
             </div>
           </div>
           
