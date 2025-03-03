@@ -1,9 +1,10 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Bot, X, Sparkles, AlertCircle, RefreshCcw } from 'lucide-react';
+import { Bot, X, Sparkles, AlertCircle, RefreshCcw, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
 
 interface AIAssistantProps {
   isOpen: boolean;
@@ -15,11 +16,13 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose, message }) =
   const [response, setResponse] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorType, setErrorType] = useState<'config' | 'network' | 'other' | null>(null);
   const [retryCount, setRetryCount] = useState<number>(0);
 
   const fetchResponse = useCallback(async (userMessage: string) => {
     setLoading(true);
     setError(null);
+    setErrorType(null);
     setResponse(null);
     
     try {
@@ -49,16 +52,20 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose, message }) =
     } catch (err: any) {
       console.error('Error fetching AI response:', err);
       
-      // Determine the error message to show to the user
+      // Determine the error message and type to show to the user
       let errorMessage = 'Unable to connect to the AI service. Please check your internet connection and try again.';
+      let errorType: 'config' | 'network' | 'other' = 'other';
       
       if (err.message?.includes('OPENAI_API_KEY') || err.message?.includes('ASSISTANT_ID')) {
         errorMessage = 'AI service is not properly configured. Please contact support.';
+        errorType = 'config';
       } else if (err.name === 'FunctionsFetchError' || err.message?.includes('Failed to fetch')) {
         errorMessage = 'Unable to connect to the AI service. Please check your internet connection and try again.';
+        errorType = 'network';
       }
       
       setError(errorMessage);
+      setErrorType(errorType);
       
       toast.error('AI Assistant Error', {
         description: errorMessage,
@@ -81,6 +88,10 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose, message }) =
     }
     setRetryCount(prev => prev + 1);
     toast.info('Retrying connection to AI service...');
+  };
+
+  const openSupabaseSettings = () => {
+    window.open('https://supabase.com/dashboard/project/kknjntjniumgajltgrfs/settings/functions', '_blank');
   };
 
   return (
@@ -126,13 +137,24 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose, message }) =
                 <div className="flex flex-col items-center justify-center text-red-400 p-4">
                   <AlertCircle size={24} className="mb-3" />
                   <p className="text-center mb-4">{error}</p>
-                  <button 
-                    onClick={handleRetry}
-                    className="flex items-center justify-center bg-red-500/30 hover:bg-red-500/50 text-white px-4 py-2 rounded-md transition-colors"
-                  >
-                    <RefreshCcw size={16} className="mr-2" />
-                    Retry
-                  </button>
+                  
+                  {errorType === 'config' ? (
+                    <Button 
+                      onClick={openSupabaseSettings}
+                      className="flex items-center justify-center bg-purple-500/30 hover:bg-purple-500/50 text-white px-4 py-2 rounded-md transition-colors"
+                    >
+                      <ExternalLink size={16} className="mr-2" />
+                      Configure OpenAI Keys
+                    </Button>
+                  ) : (
+                    <Button 
+                      onClick={handleRetry}
+                      className="flex items-center justify-center bg-red-500/30 hover:bg-red-500/50 text-white px-4 py-2 rounded-md transition-colors"
+                    >
+                      <RefreshCcw size={16} className="mr-2" />
+                      Retry
+                    </Button>
+                  )}
                 </div>
               ) : response ? (
                 <div className="text-white text-sm leading-relaxed whitespace-pre-wrap">{response}</div>
@@ -145,7 +167,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose, message }) =
 
             <div className="text-xs text-nexus-text-secondary mt-2 flex justify-between items-center">
               <p>Powered by OpenAI Assistant</p>
-              {error && (
+              {error && errorType === 'config' && (
                 <p className="text-red-300 text-xs">
                   Note: This feature requires setting up OpenAI API keys in Supabase
                 </p>
