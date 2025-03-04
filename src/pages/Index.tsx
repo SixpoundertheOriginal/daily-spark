@@ -50,9 +50,9 @@ const Index = () => {
   };
   
   return (
-    <div className="min-h-screen bg-black relative overflow-hidden">
+    <div className="min-h-screen bg-black relative overflow-auto">
       {/* Futuristic background elements */}
-      <div className="absolute inset-0 overflow-hidden">
+      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
         <div className="absolute top-[-50%] left-[-10%] w-[120%] h-[150%] bg-gradient-to-br from-nexus-accent-purple/10 via-transparent to-nexus-accent-blue/10 blur-[100px] opacity-40"></div>
         <div className="absolute bottom-[-20%] right-[-5%] w-[70%] h-[70%] bg-gradient-to-tl from-nexus-accent-pink/10 via-transparent to-nexus-accent-blue/10 blur-[100px] opacity-40"></div>
         
@@ -90,7 +90,7 @@ const Index = () => {
       </div>
       
       {/* Content */}
-      <div className="relative z-10">
+      <div className="relative z-10 h-full">
         <TaskPanel 
           viewMode={viewMode} 
           onSwitchView={handleSwitchView} 
