@@ -15,12 +15,10 @@ import {
 } from 'lucide-react';
 import { formatDate, formatTime, groupOrder, getGroupKey } from '../utils/dateUtils';
 import TaskItem from './TaskItem';
-import InsightCard from './InsightCard';
 import CommandBar from './CommandBar';
 import NewTaskForm from './NewTaskForm';
 import AIAssistant from './AIAssistant';
 import TopicCardView from './TopicCardView';
-import NeuralNetworkVisualization from './NeuralNetworkVisualization';
 import { useAuth } from '../context/AuthContext';
 import { Task } from '../types/supabase';
 import { fetchTasks, updateTask, createTask, deleteTask } from '../services/taskService';
@@ -487,58 +485,6 @@ const TaskPanel: React.FC<TaskPanelProps> = ({
             />
             <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-nexus-text-secondary" />
           </div>
-        </div>
-      </motion.div>
-
-      <motion.div 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.3 }}
-        className="px-6 py-4"
-      >
-        <NeuralNetworkVisualization isActive={aiActive} greeting={true} />
-        
-        <div className="mt-4">
-          {insight ? (
-            <InsightCard 
-              insight={insight.content}
-              actionText={insight.actionText}
-              onAction={() => console.log('Action clicked:', insight.actionText)}
-              onAskAI={() => setShowAIAssistant(true)}
-              onAnalyzeTasks={handleAnalyzeTasks}
-              isAnalyzing={isAnalyzingTasks}
-            />
-          ) : loading ? (
-            <div className="glass-card p-4 animate-pulse-soft backdrop-blur-xl shadow-xl shadow-nexus-accent-purple/5 border border-white/10">
-              <div className="flex items-center space-x-3">
-                <div className="h-10 w-10 rounded-xl bg-white/10"></div>
-                <div className="flex-1 space-y-2">
-                  <div className="h-4 bg-white/10 rounded w-3/4"></div>
-                  <div className="h-4 bg-white/10 rounded w-1/2"></div>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="glass-card p-4 backdrop-blur-xl shadow-xl shadow-nexus-accent-purple/5 border border-white/10">
-              <div className="flex items-start">
-                <div className="h-10 w-10 flex-shrink-0 primary-gradient rounded-xl flex items-center justify-center shadow-lg shadow-nexus-accent-purple/20">
-                  <Sparkles size={18} className="text-white animate-pulse-soft" />
-                </div>
-                <div className="ml-4 flex-1">
-                  <p className="text-white text-sm leading-relaxed">Complete tasks to get personalized recommendations and insights based on your productivity patterns.</p>
-                  <div className="mt-3 flex">
-                    <button 
-                      onClick={() => setShowNewTaskForm(true)}
-                      className="text-xs glass-button hover:bg-white/15 transition-all duration-300 shadow-lg shadow-nexus-accent-purple/10 rounded-lg px-4 py-2 flex items-center"
-                    >
-                      <span>Create Your First Task</span>
-                      <Plus size={14} className="ml-2 text-white" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </motion.div>
 
